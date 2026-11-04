@@ -220,16 +220,6 @@
     box-shadow: 0 4px 18px rgba(0,0,0,.35);
   }
   .einstellungen[hidden] { display: none; }
-  .schalter {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    font-weight: 600;
-    margin: 0 0 .9rem;
-    cursor: pointer;
-  }
-  .schalter input { width: 1.6rem; height: 1.6rem; accent-color: var(--messing); flex: none; }
   .leaflet-container { font-family: inherit; font-size: .8rem; }
   .leaflet-control-zoom a { width: 2.4rem !important; height: 2.4rem !important; line-height: 2.4rem !important; font-size: 1.3rem !important; }
 </style>
@@ -249,9 +239,6 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
   </button>
   <div class="einstellungen" id="einstellungen" hidden>
-    <label class="schalter" for="optStandort">Meinen Standort auf der Karte zeigen
-      <input type="checkbox" id="optStandort">
-    </label>
     <button class="sekundaer" id="btnReset" type="button">Alle Eingaben löschen</button>
   </div>
 </footer>
@@ -388,7 +375,6 @@ function fortschrittZeichnen() {
 }
 
 function zeichnen() {
-  standortStoppen();
   if (aktiveKarte) { aktiveKarte.remove(); aktiveKarte = null; }
   fortschrittZeichnen();
   let html = "";
@@ -526,46 +512,7 @@ function karteZeichnen() {
   karte.fitBounds(L.latLngBounds([[von.lat, von.lng], [nach.lat, nach.lng]]), { padding: [40, 40] });
   punktNach.openPopup();
 
-  if (einstellung.standort) standortVerfolgen();
 }
-
-/* ---------- Einstellungen ---------- */
-const EINST = "stolpersteine-mainz-einstellungen";
-let einstellung = { standort: false };
-try { Object.assign(einstellung, JSON.parse(localStorage.getItem(EINST)) || {}); } catch (e) {}
-let ortWatch = null, ortMarker = null;
-
-function standortVerfolgen() {
-  if (!aktiveKarte || !navigator.geolocation) return;
-  const karte = aktiveKarte;
-  let ersterTreffer = true;
-  standortStoppen();
-  ortWatch = navigator.geolocation.watchPosition(pos => {
-    if (aktiveKarte !== karte) return;
-    const p = [pos.coords.latitude, pos.coords.longitude];
-    if (ortMarker) ortMarker.setLatLng(p);
-    else ortMarker = L.circleMarker(p, { radius: 9, color: "#fff", fillColor: "#2a6fdb", fillOpacity: 1, weight: 3 }).addTo(karte).bindPopup("Euer Standort");
-    if (ersterTreffer) {
-      const nach = STATIONEN[stand.index + 1];
-      karte.fitBounds(L.latLngBounds([p, [nach.lat, nach.lng]]), { padding: [40, 40] });
-      ersterTreffer = false;
-    }
-  }, () => {}, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 });
-}
-function standortStoppen() {
-  if (ortWatch !== null && navigator.geolocation) navigator.geolocation.clearWatch(ortWatch);
-  ortWatch = null;
-  ortMarker = null;
-}
-
-const optStandort = document.getElementById("optStandort");
-optStandort.checked = einstellung.standort;
-optStandort.addEventListener("change", () => {
-  einstellung.standort = optStandort.checked;
-  try { localStorage.setItem(EINST, JSON.stringify(einstellung)); } catch (e) {}
-  if (einstellung.standort) standortVerfolgen();
-  else { if (ortMarker && aktiveKarte) aktiveKarte.removeLayer(ortMarker); standortStoppen(); }
-});
 
 const btnZahnrad = document.getElementById("btnZahnrad");
 btnZahnrad.addEventListener("click", () => {
