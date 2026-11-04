@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2b2622">
+<title>Stolpersteine Mainz</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root {
+    --bg: #f4f1ec;
+    --karte: #ffffff;
+    --text: #2b2622;
+    --leise: #6b625a;
+    --messing: #b8892f;
+    --messing-dunkel: #8a6420;
+    --stein: #2b2622;
+    --ok: #2f7d4a;
+    --fehler: #b23a2e;
+    --rand: #ddd5ca;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 17px;
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  header {
+    background: var(--stein);
+    color: #fff;
+    padding: calc(14px + env(safe-area-inset-top)) 18px 14px;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 1.2rem;
+    letter-spacing: .02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .stein-icon {
+    width: 22px; height: 22px;
+    background: linear-gradient(135deg, #e0b863, var(--messing-dunkel));
+    border-radius: 3px;
+    flex: none;
+  }
+  .fortschritt {
+    margin-top: 10px;
+    display: flex;
+    gap: 5px;
+  }
+  .fortschritt span {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: #554d46;
+  }
+  .fortschritt span.erledigt { background: var(--messing); }
+  .fortschritt span.aktiv { background: #e0b863; }
+  .fortschritt-text {
+    margin-top: 6px;
+    font-size: .85rem;
+    color: #cfc6bc;
+  }
+  main {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 16px 14px 40px;
+  }
+  .karte {
+    background: var(--karte);
+    border-radius: var(--radius);
+    padding: 18px 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    border: 1px solid var(--rand);
+  }
+  .etikett {
+    display: inline-block;
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--messing-dunkel);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  h2 { margin: 0 0 6px; font-size: 1.35rem; line-height: 1.25; }
+  h3 { margin: 18px 0 6px; font-size: 1.05rem; }
+  p { margin: 0 0 12px; }
+  .adresse { color: var(--leise); font-size: .95rem; margin-bottom: 12px; }
+  button, .knopf {
+    display: block;
+    width: 100%;
+    min-height: 52px;
+    padding: 14px 16px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .primaer { background: var(--messing); color: #fff; }
+  .primaer:active { background: var(--messing-dunkel); }
+  .sekundaer { background: #ece6dd; color: var(--text); }
+  .sekundaer:active { background: #ddd5ca; }
+  .knopfreihe { display: grid; gap: 10px; margin-top: 12px; }
+  .raetsel {
+    margin-top: 14px;
+    padding: 16px;
+    background: #faf6ef;
+    border: 1px dashed var(--messing);
+    border-radius: 12px;
+  }
+  .raetsel[hidden] { display: none; }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  input[type=text] {
+    width: 100%;
+    min-height: 52px;
+    padding: 12px 14px;
+    font-size: 1.1rem;
+    font-family: inherit;
+    border: 2px solid var(--rand);
+    border-radius: 12px;
+    background: #fff;
+    color: var(--text);
+  }
+  input[type=text]:focus { outline: none; border-color: var(--messing); }
+  .rueckmeldung { min-height: 1.5em; margin-top: 10px; font-weight: 600; }
+  .rueckmeldung.ok { color: var(--ok); }
+  .rueckmeldung.fehler { color: var(--fehler); }
+  .wackeln { animation: wackeln .35s; }
+  @keyframes wackeln {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+  .kartenansicht {
+    height: 320px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--rand);
+    margin: 10px 0 4px;
+  }
+  .hinweis { font-size: .85rem; color: var(--leise); }
+  details.bisher {
+    background: var(--karte);
+    border: 1px solid var(--rand);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+  }
+  details.bisher summary {
+    padding: 14px 16px;
+    cursor: pointer;
+    font-weight: 600;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  details.bisher summary::-webkit-details-marker { display: none; }
+  details.bisher summary::after { content: "+"; color: var(--messing-dunkel); }
+  details.bisher[open] summary::after { content: "\2212"; }
+  details.bisher .inhalt { padding: 0 16px 14px; }
+  .haken { color: var(--ok); margin-right: 6px; }
+  .abschnitt-titel {
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--leise);
+    margin: 26px 4px 10px;
+  }
+  .ziel { text-align: center; }
+  .ziel .gross { font-size: 3rem; line-height: 1; margin: 6px 0 12px; color: var(--messing); }
+  footer { max-width: 560px; margin: 0 auto; padding: 0 14px 30px; }
+  .leaflet-container { font-family: inherit; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="stein-icon"></span>Stolpersteine Mainz</h1>
+  <div class="fortschritt" id="fortschritt"></div>
+  <div class="fortschritt-text" id="fortschrittText"></div>
+</header>
+
+<main id="app"></main>
+
+<footer>
+  <button class="sekundaer" id="btnReset" type="button">Alle Eingaben löschen</button>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ---------- Stationen (Dummy) ----------
+   antwort: erwartete Lösung
+   grossKlein: true = Groß-/Kleinschreibung zählt (Standard: egal)
+*/
+const STATIONEN = [
+  {
+    titel: "Treffpunkt Hauptbahnhof",
+    adresse: "Bahnhofplatz, vor dem Haupteingang",
+    lat: 50.00105, lng: 8.25900,
+    text: "Hier beginnt unser Rundgang. Platzhaltertext für die Begrüßung und eine kurze Einführung in das Thema.",
+    frage: "Platzhalter-Rätsel für den Start. (Dummy-Lösung: test)",
+    antwort: "test",
+    grossKlein: false
+  },
+  {
+    titel: "Schillerplatz",
+    adresse: "Schillerplatz, am Fastnachtsbrunnen",
+    lat: 49.99692, lng: 8.26810,
+    text: "Platzhaltertext zur Station. Hier folgen später Informationen zum Ort und zu den Stolpersteinen in der Nähe.",
+    frage: "Platzhalter-Rätsel zur Station Schillerplatz. (Dummy-Lösung: test)",
+    antwort: "test",
+    grossKlein: false
+  },
+  {
+    titel: "Gutenbergplatz",
+    adresse: "Gutenbergplatz, vor dem Staatstheater",
+    lat: 49.99862, lng: 8.27164,
+    text: "Platzhaltertext zur Station. Hier folgen später Informationen zum Ort und zu den Stolpersteinen in der Nähe.",
+    frage: "Platzhalter-Rätsel zur Station Gutenbergplatz. (Dummy-Lösung: test)",
+    antwort: "test",
+    grossKlein: false
+  },
+  {
+    titel: "Marktplatz am Dom",
+    adresse: "Markt, am Marktbrunnen",
+    lat: 49.99955, lng: 8.27385,
+    text: "Platzhaltertext zur Station. Hier folgen später Informationen zum Ort und zu den Stolpersteinen in der Nähe.",
+    frage: "Platzhalter-Rätsel zur Station Marktplatz. (Dummy-Lösung: test)",
+    antwort: "test",
+    grossKlein: false
+  },
+  {
+    titel: "Kirschgarten",
+    adresse: "Kirschgarten, Ecke Augustinerstraße",
+    lat: 49.99752, lng: 8.27462,
+    text: "Platzhaltertext zur Station. Hier folgen später Informationen zum Ort und zu den Stolpersteinen in der Nähe.",
+    frage: "Platzhalter-Rätsel zur Station Kirschgarten. (Dummy-Lösung: test)",
+    antwort: "test",
+    grossKlein: false
+  },
+  {
+    titel: "Neue Synagoge",
+    adresse: "Synagogenplatz, Hindenburgstraße",
+    lat: 50.00595, lng: 8.26135,
+    text: "Platzhaltertext zur Station. Hier folgen später Informationen zum Ort und zu den Stolpersteinen in der Nähe.",
+    frage: "Platzhalter-Rätsel zur Station Neue Synagoge. (Dummy-Lösung: test)",
+    antwort: "test",
+    grossKlein: false
+  },
+  {
+    titel: "Zurück am Hauptbahnhof",
+    adresse: "Bahnhofplatz, vor dem Haupteingang",
+    lat: 50.00105, lng: 8.25900,
+    text: "Wir sind wieder am Ausgangspunkt. Platzhaltertext für den Abschluss.",
+    frage: "Platzhalter-Abschlussrätsel. (Dummy-Lösung: test)",
+    antwort: "test",
+    grossKlein: false
+  }
+];
+
+/* ---------- Fortschritt ---------- */
+const SPEICHER = "stolpersteine-mainz-v1";
+// phase: "vorort" = an Station index, Rätsel offen
+//        "unterwegs" = Station index gelöst, Weg zu index+1
+//        "fertig" = alles gelöst
+let stand = laden();
+
+function laden() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SPEICHER));
+    if (s && typeof s.index === "number") return s;
+  } catch (e) {}
+  return { index: 0, phase: "vorort", raetselOffen: false };
+}
+function speichern() {
+  try { localStorage.setItem(SPEICHER, JSON.stringify(stand)); } catch (e) {}
+}
+
+function normalisieren(t, grossKlein) {
+  t = String(t).trim().replace(/\s+/g, " ");
+  return grossKlein ? t : t.toLocaleLowerCase("de");
+}
+
+/* ---------- Darstellung ---------- */
+const app = document.getElementById("app");
+let aktiveKarte = null;
+
+function esc(t) {
+  return String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+function navLink(s) {
+  return "https://www.google.com/maps/dir/?api=1&destination=" + s.lat + "," + s.lng + "&travelmode=walking";
+}
+
+function fortschrittZeichnen() {
+  const leiste = document.getElementById("fortschritt");
+  const n = STATIONEN.length;
+  let html = "";
+  for (let i = 0; i < n; i++) {
+    let k = "";
+    if (stand.phase === "fertig" || i < stand.index || (i === stand.index && stand.phase === "unterwegs")) k = "erledigt";
+    else if (i === stand.index) k = "aktiv";
+    html += '<span class="' + k + '"></span>';
+  }
+  leiste.innerHTML = html;
+  const geloest = stand.phase === "fertig" ? n : stand.index + (stand.phase === "unterwegs" ? 1 : 0);
+  document.getElementById("fortschrittText").textContent = geloest + " von " + n + " Stationen gelöst";
+}
+
+function zeichnen() {
+  if (aktiveKarte) { aktiveKarte.remove(); aktiveKarte = null; }
+  fortschrittZeichnen();
+  let html = "";
+
+  if (stand.phase === "fertig") {
+    html += '<section class="karte ziel">' +
+      '<div class="etikett">Geschafft</div>' +
+      '<div class="gross">&#9632;</div>' +
+      '<h2>Rundgang abgeschlossen</h2>' +
+      '<p>Platzhaltertext für den Abschluss des Rundgangs.</p>' +
+      '</section>';
+  } else if (stand.phase === "vorort") {
+    const s = STATIONEN[stand.index];
+    html += '<section class="karte">' +
+      '<div class="etikett">Station ' + (stand.index + 1) + ' von ' + STATIONEN.length + '</div>' +
+      '<h2>' + esc(s.titel) + '</h2>' +
+      '<div class="adresse">' + esc(s.adresse) + '</div>' +
+      '<p>' + esc(s.text) + '</p>' +
+      '<button class="primaer" id="btnStart" type="button"' + (stand.raetselOffen ? ' hidden' : '') + '>Rätsel starten</button>' +
+      '<div class="raetsel" id="raetsel"' + (stand.raetselOffen ? '' : ' hidden') + '>' +
+        '<p>' + esc(s.frage) + '</p>' +
+        '<form id="formAntwort" autocomplete="off">' +
+          '<label for="antwort">Eure Antwort</label>' +
+          '<input type="text" id="antwort" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">' +
+          '<div class="knopfreihe"><button class="primaer" type="submit">Antwort prüfen</button></div>' +
+          '<div class="rueckmeldung" id="rueckmeldung" aria-live="polite"></div>' +
+        '</form>' +
+      '</div>' +
+      '</section>';
+  } else {
+    const von = STATIONEN[stand.index];
+    const nach = STATIONEN[stand.index + 1];
+    html += '<section class="karte">' +
+      '<div class="etikett">Richtig gelöst</div>' +
+      '<h2>Weiter zu Station ' + (stand.index + 2) + '</h2>' +
+      '<p>Euer nächstes Ziel: <span style="font-weight:600">' + esc(nach.titel) + '</span><br>' +
+      '<span class="adresse">' + esc(nach.adresse) + '</span></p>' +
+      '<div class="kartenansicht" id="karte"></div>' +
+      '<div class="hinweis">Gestrichelte Linie = Luftlinie. Für den Fußweg die Navigation öffnen.</div>' +
+      '<div class="knopfreihe">' +
+        '<button class="sekundaer" id="btnOrt" type="button">Meinen Standort zeigen</button>' +
+        '<a class="knopf sekundaer" href="' + navLink(nach) + '" target="_blank" rel="noopener">Fußweg in Karten-App öffnen</a>' +
+        '<button class="primaer" id="btnDa" type="button">Wir sind angekommen</button>' +
+      '</div>' +
+      '</section>';
+  }
+
+  // bisherige Stationen
+  const bisAnzahl = stand.phase === "fertig" ? STATIONEN.length : stand.index + (stand.phase === "unterwegs" ? 1 : 0);
+  if (bisAnzahl > 0) {
+    html += '<div class="abschnitt-titel">Bisherige Stationen</div>';
+    for (let i = 0; i < bisAnzahl; i++) {
+      const s = STATIONEN[i];
+      html += '<details class="bisher"><summary><span><span class="haken">&#10003;</span>' +
+        (i + 1) + '. ' + esc(s.titel) + '</span></summary>' +
+        '<div class="inhalt"><div class="adresse">' + esc(s.adresse) + '</div>' +
+        '<p>' + esc(s.text) + '</p></div></details>';
+    }
+  }
+
+  app.innerHTML = html;
+  window.scrollTo(0, 0);
+  ereignisseBinden();
+}
+
+function ereignisseBinden() {
+  const btnStart = document.getElementById("btnStart");
+  if (btnStart) btnStart.addEventListener("click", () => {
+    stand.raetselOffen = true;
+    speichern();
+    btnStart.hidden = true;
+    document.getElementById("raetsel").hidden = false;
+    document.getElementById("antwort").focus();
+  });
+
+  const form = document.getElementById("formAntwort");
+  if (form) form.addEventListener("submit", e => {
+    e.preventDefault();
+    const s = STATIONEN[stand.index];
+    const feld = document.getElementById("antwort");
+    const rm = document.getElementById("rueckmeldung");
+    if (normalisieren(feld.value, s.grossKlein) === normalisieren(s.antwort, s.grossKlein)) {
+      rm.className = "rueckmeldung ok";
+      rm.textContent = "Richtig!";
+      feld.blur();
+      setTimeout(() => {
+        stand.phase = stand.index === STATIONEN.length - 1 ? "fertig" : "unterwegs";
+        stand.raetselOffen = false;
+        speichern();
+        zeichnen();
+      }, 700);
+    } else {
+      rm.className = "rueckmeldung fehler";
+      rm.textContent = feld.value.trim() === "" ? "Bitte eine Antwort eingeben." : "Leider nicht richtig. Versucht es noch einmal.";
+      feld.classList.remove("wackeln");
+      void feld.offsetWidth;
+      feld.classList.add("wackeln");
+    }
+  });
+
+  const btnDa = document.getElementById("btnDa");
+  if (btnDa) btnDa.addEventListener("click", () => {
+    stand.index += 1;
+    stand.phase = "vorort";
+    stand.raetselOffen = false;
+    speichern();
+    zeichnen();
+  });
+
+  if (document.getElementById("karte")) karteZeichnen();
+}
+
+function karteZeichnen() {
+  const von = STATIONEN[stand.index];
+  const nach = STATIONEN[stand.index + 1];
+  if (typeof L === "undefined") {
+    document.getElementById("karte").innerHTML = '<p style="padding:12px">Karte konnte nicht geladen werden. Bitte den Link zur Karten-App nutzen.</p>';
+    return;
+  }
+  const karte = L.map("karte", { zoomControl: true, attributionControl: true });
+  aktiveKarte = karte;
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  }).addTo(karte);
+
+  const punktVon = L.circleMarker([von.lat, von.lng], { radius: 8, color: "#6b625a", fillColor: "#ffffff", fillOpacity: 1, weight: 3 })
+    .addTo(karte).bindPopup("Hier seid ihr: " + esc(von.titel));
+  const punktNach = L.marker([nach.lat, nach.lng], {
+    icon: L.divIcon({
+      className: "",
+      html: '<div style="width:26px;height:26px;border-radius:4px;background:linear-gradient(135deg,#e0b863,#8a6420);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>',
+      iconSize: [26, 26], iconAnchor: [13, 13]
+    })
+  }).addTo(karte).bindPopup("Ziel: " + esc(nach.titel));
+  L.polyline([[von.lat, von.lng], [nach.lat, nach.lng]], { color: "#b8892f", weight: 4, dashArray: "8 8" }).addTo(karte);
+  karte.fitBounds(L.latLngBounds([[von.lat, von.lng], [nach.lat, nach.lng]]), { padding: [40, 40] });
+  punktNach.openPopup();
+
+  const btnOrt = document.getElementById("btnOrt");
+  let ortMarker = null;
+  btnOrt.addEventListener("click", () => {
+    if (!navigator.geolocation) { btnOrt.textContent = "Standort nicht verfügbar"; return; }
+    btnOrt.textContent = "Standort wird gesucht ...";
+    navigator.geolocation.getCurrentPosition(pos => {
+      const p = [pos.coords.latitude, pos.coords.longitude];
+      if (ortMarker) ortMarker.setLatLng(p);
+      else ortMarker = L.circleMarker(p, { radius: 7, color: "#fff", fillColor: "#2a6fdb", fillOpacity: 1, weight: 3 }).addTo(karte).bindPopup("Euer Standort");
+      karte.fitBounds(L.latLngBounds([p, [nach.lat, nach.lng]]), { padding: [40, 40] });
+      btnOrt.textContent = "Standort aktualisieren";
+    }, () => {
+      btnOrt.textContent = "Standort nicht freigegeben";
+    }, { enableHighAccuracy: true, timeout: 10000 });
+  });
+}
+
+document.getElementById("btnReset").addEventListener("click", () => {
+  if (confirm("Wirklich alle Eingaben und den Fortschritt löschen? Der Rundgang beginnt dann wieder bei Station 1.")) {
+    try { localStorage.removeItem(SPEICHER); } catch (e) {}
+    stand = { index: 0, phase: "vorort", raetselOffen: false };
+    zeichnen();
+  }
+});
+
+zeichnen();
+</script>
+<!-- vt-speicher -->
+</body>
+</html>
