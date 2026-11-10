@@ -234,7 +234,10 @@
   .gruppen table { width: 100%; border-collapse: collapse; font-size: .95rem; }
   .gruppen th, .gruppen td { text-align: left; padding: .45rem 0; border-top: 1px solid var(--rand); }
   .gruppen tr:last-child th, .gruppen tr:last-child td { border-bottom: 1px solid var(--rand); }
-  .gruppen th { font-weight: 600; width: 45%; }
+  .gruppen th { font-weight: 600; width: 45%; vertical-align: top; padding-right: .6rem; }
+  .gruppen td { vertical-align: top; }
+  .gruppen th .adresse { font-weight: 400; font-size: .8rem; margin: .1rem 0 0; }
+  .paten { font-size: .9rem; color: var(--leise); }
   .platzhalter {
     margin: .8rem 0 .2rem;
     padding: .8rem 1rem;
@@ -327,7 +330,7 @@ const STATIONEN = [
         '<li>Das erste Rätsel löst ihr gleich hier am Hauptbahnhof, danach wartet an jeder der sechs Hauptstationen ein weiteres. Erst mit der richtigen Lösung geht es weiter.</li>' +
         '<li>Ziel ist der Hof Ehrenfels in der Altstadt. Dort treffen sich alle Gruppen gegen 16:15 Uhr wieder.</li>' +
       '</ul>' +
-      '<div class="gruppen"><div class="weg-titel">Gruppeneinteilung</div>' +
+      '<div class="gruppen"><div class="weg-titel">Kleingruppen und Begleitung</div>' +
         '<table>' +
           '<tr><th>Gruppe 1</th><td>Anna</td></tr>' +
           '<tr><th>Gruppe 2</th><td>Benedikt</td></tr>' +
@@ -344,6 +347,7 @@ const STATIONEN = [
   {
     titel: "Kommunistin im Exil",
     gruppe: 5,
+    paten: "Dirk Elbert, Robert König, Christina Bosin, Phillipp Harth",
     adresse: "Anna-Seghers-Platz",
     lat: 50.00322, lng: 8.25941,
     frage: "Wann wurde der Mainzer Fußballverein gegründet? (Jahreszahl)",
@@ -377,6 +381,7 @@ const STATIONEN = [
   {
     titel: "Eugen Salomon",
     gruppe: 3,
+    paten: "Martin Tettero, Silas Schwarz, Moritz von Hohenthal, Sergej Wolsiffer",
     adresse: "Boppstraße 64, Stolperstein vor dem Haus",
     lat: 50.00630, lng: 8.25570,
     frage: "Platzhalter-Rätsel zu Eugen Salomon. (Dummy-Lösung: test)",
@@ -429,6 +434,7 @@ const STATIONEN = [
   {
     titel: "Dalberger Hof",
     gruppe: 1,
+    paten: "Annika, Simon, Aladin, Judith",
     adresse: "Klarastraße 4",
     lat: 50.00170, lng: 8.26982,
     frage: "Was war der Dalberger Hof, bevor hier Wohnungen entstehen sollten?",
@@ -559,6 +565,7 @@ const STATIONEN = [
   {
     titel: "Gouvernement",
     gruppe: 4,
+    paten: "Katarina Kippes, Kevin Hoffarth, Stevan Dejanovic, Sophie Bersch",
     adresse: "Schillerplatz 1, vor dem Osteiner Hof (Gouvernement)",
     lat: 49.99742, lng: 8.26819,
     frage: "Platzhalter-Rätsel zum Gouvernement. (Dummy-Lösung: test)",
@@ -609,6 +616,7 @@ const STATIONEN = [
   {
     titel: "Man of the Millennium",
     gruppe: 2,
+    paten: "Lukas Winkler, Lena Walg, Helena Wenke, Ralf Schüssler",
     adresse: "Gutenbergplatz, am Gutenberg-Denkmal",
     lat: 49.99885, lng: 8.27159,
     frage: "Platzhalter-Rätsel zum Man of the Millennium. (Dummy-Lösung: test)",
@@ -657,6 +665,7 @@ const STATIONEN = [
   {
     titel: "Exportierte Revolution",
     gruppe: 6,
+    paten: "Timo Franzen, Julian Anglade, Marietta Schmitt",
     adresse: "Marktplatz, an der Heunensäule am Höfchen",
     lat: 49.99950, lng: 8.27330,
     frage: "Platzhalter-Rätsel zur Mainzer Republik. (Dummy-Lösung: test)",
@@ -892,6 +901,15 @@ function unterwegsHtml(nach) {
   return html + '</div>';
 }
 
+function patenTabelle() {
+  let h = '<div class="gruppen"><div class="weg-titel">Patengruppen an den Hauptstationen</div><table>';
+  STATIONEN.forEach(s => {
+    if (!s.gruppe) return;
+    h += '<tr><th>' + esc(s.titel) + '<div class="adresse">' + esc(s.adresse) + '</div></th><td>' + esc(s.paten || '') + '</td></tr>';
+  });
+  return h + '</table></div>';
+}
+
 function geloestAnzahl() {
   let n = 0;
   STATIONEN.forEach((s, i) => {
@@ -934,7 +952,8 @@ function zeichnen() {
       '<h2>' + esc(s.titel) + '</h2>' +
       '<div class="adresse">' + esc(s.adresse) + '</div>' +
       (s.html ? s.html : (s.text ? '<p>' + esc(s.text) + '</p>' : '')) +
-      (s.gruppe ? '<p>Hier stellt euch jetzt die Gruppe <span style="font-weight:600">„' + esc(s.titel) + '“</span> ihr Thema vor. Danach geht es mit dem Rätsel weiter.</p>' : '');
+      (s.gruppe ? '<p>Hier stellt euch jetzt die Gruppe <span style="font-weight:600">„' + esc(s.titel) + '“</span> ihr Thema vor. Danach geht es mit dem Rätsel weiter.</p>' + (s.paten ? '<p class="paten">' + esc(s.paten) + '</p>' : '') : '') +
+      (stand.index === 0 ? patenTabelle() : '');
     if (s.frage) {
       html += '<button class="primaer" id="btnStart" type="button"' + (stand.raetselOffen ? ' hidden' : '') + '>Rätsel starten</button>' +
         '<div class="raetsel" id="raetsel"' + (stand.raetselOffen ? '' : ' hidden') + '>' +
