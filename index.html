@@ -346,7 +346,6 @@ const STATIONEN = [
     gruppe: 5,
     adresse: "Anna-Seghers-Platz",
     lat: 50.00322, lng: 8.25941,
-    text: "Platzhaltertext. Thema: Anna Seghers, Literarisches Denkmal, Das siebte Kreuz.",
     frage: "Wann wurde der Mainzer Fußballverein gegründet? (Jahreszahl)",
     antwort: "1905",
     grossKlein: false,
@@ -380,7 +379,6 @@ const STATIONEN = [
     gruppe: 3,
     adresse: "Boppstraße 64, Stolperstein vor dem Haus",
     lat: 50.00630, lng: 8.25570,
-    text: "Platzhaltertext. Thema: Eugen Salomon, Mitgründer des 1. FSV Mainz 05 (1905), hier liegt sein Stolperstein.",
     frage: "Platzhalter-Rätsel zu Eugen Salomon. (Dummy-Lösung: test)",
     antwort: "test",
     grossKlein: false,
@@ -433,7 +431,6 @@ const STATIONEN = [
     gruppe: 1,
     adresse: "Klarastraße 4",
     lat: 50.00170, lng: 8.26982,
-    text: "Platzhaltertext. Thema: Ein Mainzer Adelshof, Gefängnis, Luxuswohnungen.",
     frage: "Was war der Dalberger Hof, bevor hier Wohnungen entstehen sollten?",
     enthaelt: ["gefängnis", "gefaengnis", "knast", "haft", "zelle", "kerker", "polizei", "gericht", "justiz", "adel", "palais", "palast", "residenz"],
     grossKlein: false,
@@ -564,7 +561,6 @@ const STATIONEN = [
     gruppe: 4,
     adresse: "Schillerplatz 1, vor dem Osteiner Hof (Gouvernement)",
     lat: 49.99742, lng: 8.26819,
-    text: "Platzhaltertext. Thema: Gouvernement, Braunes Haus, 11.11.",
     frage: "Platzhalter-Rätsel zum Gouvernement. (Dummy-Lösung: test)",
     antwort: "test",
     grossKlein: false,
@@ -615,7 +611,6 @@ const STATIONEN = [
     gruppe: 2,
     adresse: "Gutenbergplatz, am Gutenberg-Denkmal",
     lat: 49.99885, lng: 8.27159,
-    text: "Platzhaltertext. Thema: Revolutionär, Handwerker, Geschäftsmann, Wegbereiter der Moderne.",
     frage: "Platzhalter-Rätsel zum Man of the Millennium. (Dummy-Lösung: test)",
     antwort: "test",
     grossKlein: false,
@@ -664,7 +659,6 @@ const STATIONEN = [
     gruppe: 6,
     adresse: "Marktplatz, an der Heunensäule am Höfchen",
     lat: 49.99950, lng: 8.27330,
-    text: "Platzhaltertext. Thema: Mainzer Republik, Jakobiner, Freiheitsbaum, 18. März, Bundespräsident, Nationalfeiertag.",
     frage: "Platzhalter-Rätsel zur Mainzer Republik. (Dummy-Lösung: test)",
     antwort: "test",
     grossKlein: false,
@@ -939,7 +933,7 @@ function zeichnen() {
       (stand.index === 0 ? '<div class="etikett">Rallye · Do., 12.11.2026</div>' : (s.frage ? '<div class="etikett">Hauptstation</div>' : '<div class="etikett">Ziel</div>')) +
       '<h2>' + esc(s.titel) + '</h2>' +
       '<div class="adresse">' + esc(s.adresse) + '</div>' +
-      (s.html ? s.html : '<p>' + esc(s.text) + '</p>');
+      (s.html ? s.html : (s.text ? '<p>' + esc(s.text) + '</p>' : ''));
     if (s.frage) {
       html += '<button class="primaer" id="btnStart" type="button"' + (stand.raetselOffen ? ' hidden' : '') + '>Rätsel starten</button>' +
         '<div class="raetsel" id="raetsel"' + (stand.raetselOffen ? '' : ' hidden') + '>' +
@@ -984,7 +978,7 @@ function zeichnen() {
       html += '<details class="bisher"><summary><span><span class="haken">&#10003;</span>' +
         esc(s.titel) + '</span></summary>' +
         '<div class="inhalt"><div class="adresse">' + esc(s.adresse) + '</div>' +
-        '<p>' + esc(s.text) + '</p></div></details>';
+        (s.text ? '<p>' + esc(s.text) + '</p>' : '') + '</div></details>';
     }
   }
 
