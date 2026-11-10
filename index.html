@@ -933,7 +933,8 @@ function zeichnen() {
       (stand.index === 0 ? '<div class="etikett">Rallye · Do., 12.11.2026</div>' : (s.frage ? '<div class="etikett">Hauptstation</div>' : '<div class="etikett">Ziel</div>')) +
       '<h2>' + esc(s.titel) + '</h2>' +
       '<div class="adresse">' + esc(s.adresse) + '</div>' +
-      (s.html ? s.html : (s.text ? '<p>' + esc(s.text) + '</p>' : ''));
+      (s.html ? s.html : (s.text ? '<p>' + esc(s.text) + '</p>' : '')) +
+      (s.gruppe ? '<p>Hier stellt euch jetzt die Gruppe <span style="font-weight:600">„' + esc(s.titel) + '“</span> ihr Thema vor. Danach geht es mit dem Rätsel weiter.</p>' : '');
     if (s.frage) {
       html += '<button class="primaer" id="btnStart" type="button"' + (stand.raetselOffen ? ' hidden' : '') + '>Rätsel starten</button>' +
         '<div class="raetsel" id="raetsel"' + (stand.raetselOffen ? '' : ' hidden') + '>' +
