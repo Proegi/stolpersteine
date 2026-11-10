@@ -182,6 +182,34 @@
   details.bisher[open] summary::after { content: "\2212"; }
   details.bisher .inhalt { padding: 0 1rem .9rem; }
   .haken { color: var(--ok); margin-right: .4rem; }
+  .nr {
+    display: inline-block;
+    min-width: 1.4rem; height: 1.4rem;
+    margin-right: .5rem;
+    border-radius: 50%;
+    background: var(--stein);
+    color: #fff;
+    font-size: .75rem;
+    line-height: 1.4rem;
+    text-align: center;
+    vertical-align: .1em;
+  }
+  .nr.leer { background: transparent; border: 2px solid var(--stein); }
+  ul.punkte, ul.ablauf { margin: 0 0 .6rem; padding-left: 1.2rem; }
+  ul.punkte li, ul.ablauf li { margin-bottom: .45rem; }
+  ul.punkte { font-size: .9rem; }
+  .lbl-ns { color: var(--fehler); font-weight: 600; }
+  .lbl-info { color: #2a5d8a; font-weight: 600; }
+  .quellen { font-size: .7rem; color: var(--leise); margin-bottom: .5rem; }
+  .kleinlink { font-size: .85rem; color: var(--messing-dunkel); font-weight: 600; }
+  .platzhalter {
+    margin: .8rem 0 .2rem;
+    padding: .8rem 1rem;
+    border: 2px dashed var(--rand);
+    border-radius: .8rem;
+    color: var(--leise);
+    font-size: .9rem;
+  }
   .abschnitt-titel {
     font-size: .8rem;
     text-transform: uppercase;
@@ -245,87 +273,635 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-/* ---------- Stationen (Dummy) ----------
-   antwort: erwartete Lösung
+/* ---------- Stationen ----------
+   frage/antwort: Rätsel (frage: null = kein Rätsel, nur Weiter-Knopf)
    grossKlein: true = Groß-/Kleinschreibung zählt (Standard: egal)
+   unterwegs: Zwischenstopps auf dem Weg ZU dieser Station (werden unter der Karte aufklappbar angezeigt)
 */
 const STATIONEN = [
   {
     titel: "Treffpunkt Hauptbahnhof",
-    adresse: "Bahnhofplatz, vor dem Haupteingang",
+    adresse: "Eingang Hauptbahnhof · 13:15 Uhr",
     lat: 50.00105, lng: 8.25900,
-    text: "Hier beginnt unser Rundgang. Platzhaltertext für die Begrüßung und eine kurze Einführung in das Thema.",
-    frage: "Platzhalter-Rätsel für den Start. (Dummy-Lösung: test)",
+    text: "Start am Hauptbahnhof: gemeinsam los, dann in Kleingruppen wie bei einer Schnitzeljagd durch Mainz.",
+    html:
+      '<p>Wir treffen uns alle gemeinsam als große Gruppe am Hauptbahnhof. Von hier aus geht es in euren bereits eingeteilten Kleingruppen weiter – wie bei einer Schnitzeljagd durch die Mainzer Innen- und Altstadt.</p>' +
+      '<p>Jede Kleingruppe wird von einer Person aus der Orga-Gruppe begleitet.</p>' +
+      '<p><span style="font-weight:600">So funktioniert es:</span></p>' +
+      '<ul class="ablauf">' +
+        '<li>Die Seite zeigt euch immer nur das nächste Ziel – mit Karte und Link zur Karten-App.</li>' +
+        '<li>Auf dem Weg kommt ihr an weiteren Orten vorbei. Dazu erzählt euch eure Begleitung etwas.</li>' +
+        '<li>An sechs Hauptstationen wartet ein Rätsel. Erst mit der richtigen Lösung geht es weiter.</li>' +
+        '<li>Ziel ist der Hof Ehrenfels in der Altstadt. Dort treffen sich alle Gruppen gegen 16:15 Uhr wieder.</li>' +
+      '</ul>' +
+      '<div class="platzhalter"><span style="font-weight:600">Gruppenaufteilung</span><br>Platzhalter: Hier folgt die Einteilung der Kleingruppen und ihrer Begleitungen aus der Orga-Gruppe.</div>',
+    frage: null,
+    weiterText: "Rundgang starten",
+    unterwegs: []
+  },
+  {
+    titel: "Kommunistin im Exil",
+    gruppe: 5,
+    adresse: "Anna-Seghers-Platz",
+    lat: 50.00322, lng: 8.25941,
+    text: "Platzhaltertext. Thema: Anna Seghers, Literarisches Denkmal, Das siebte Kreuz.",
+    frage: "Platzhalter-Rätsel zur Kommunistin im Exil. (Dummy-Lösung: test)",
     antwort: "test",
-    grossKlein: false
+    grossKlein: false,
+    unterwegs: [
+      {
+        titel: "Mainz Hauptbahnhof",
+        ort: "Treffpunkt: Eingang Hbf · 13:15 Uhr",
+        punkte: [
+          "Das heutige Empfangsgebäude entstand 1882–1884 nach Plänen von Philipp Johann Berdellé und wurde am 15. Oktober 1884 eröffnet. Der erste Bahnhof (1853) lag am Rheinufer außerhalb der Stadtmauer.",
+          "Stil: italienische Neorenaissance mit barocken und klassizistischen Elementen, heller Flonheimer Sandstein.",
+          "Die Halle von 1884 war mit rund 300 m Länge und 47 m Breite die damals längste Bahnhofshalle Europas (gebaut von MAN Gustavsburg).",
+          "Heute ca. 60.000 Reisende täglich – verkehrsreichster Bahnhof in Rheinland-Pfalz.",
+          "Gut zu wissen: Am Eingang zeigen zwei Reliefs (Valentin Barth, Anton Scholl) Putten mit Eisenbahn und Koffer: links „Abfahrt“, rechts „Ankunft“.",
+          "NS-Zeit: 23.12.1934 Dachstuhlbrand im Empfangsgebäude; die Halle wurde im Rahmen von Arbeitsbeschaffungsprogrammen ersetzt, 1939 baute MAN eine neue, nur noch 140 m lange Halle.",
+          "NS-Zeit: Die Deportationszüge fuhren nicht vom Hbf, sondern vom Güterbahnhof (Mombacher Straße): u. a. Transporte mit über 1.000 Mainzer Jüdinnen und Juden im März und September 1942 sowie die Deportation von Sinti 1940. Sammelstelle der ersten Deportation im März 1942 war die Turnhalle der Feldbergschule.",
+          "NS-Zeit: Luftangriffe im September 1944 zerstörten 1.767 m Gleis, 198 Weichen und 6 Stellwerke; Wiederaufbau ab 1947. Die letzte Dampflok verließ 1959 den Lokschuppen."
+        ],
+        quellen: "Wikipedia DE/EN, Mainz Hauptbahnhof; Stadt Mainz, „Pfad der Erinnerung“"
+      },
+      {
+        titel: "Wandgemälde: Mainzer Schwellkopf und Zugente",
+        ort: "Fastnacht in Mainz",
+        punkte: [
+          "Schwellköpp sind große, handgefertigte Köpfe aus Pappmaché und gehören zu den bekanntesten Symbolen der Mainzer Fastnacht.",
+          "Erfinder war der Steinbildhauer Ludwig Lipp (1877–1945).",
+          "Zum ersten Mal waren die Figuren 1927 im Rosenmontagszug zu sehen – 2027 werden sie also 100 Jahre alt. Das Motto der kommenden Kampagne dreht sich um die Schwellköpp (aus rund 450 Vorschlägen, 72 kamen in die Vorauswahl).",
+          "Der Rosenmontagszug findet Anfang Februar statt; die Fastnacht endet zwei Tage später am Aschermittwoch.",
+          "Gut zu wissen: Die Rallye liegt einen Tag nach dem 11.11. – dem Auftakt der „fünften Jahreszeit“, der in Mainz um 11:11 Uhr vom Balkon des Osteiner Hofs verkündet wird."
+        ],
+        quellen: "Wochenblatt-Reporter, „Neues Fastnachtsmotto in Mainz: Schwellköpp im Jubiläumsjahr“; Stadt Mainz (Osteiner Hof/Schillerplatz)"
+      }
+    ]
   },
   {
     titel: "Eugen Salomon",
+    gruppe: 3,
     adresse: "Boppstraße 64, Stolperstein vor dem Haus",
     lat: 50.00630, lng: 8.25570,
     text: "Platzhaltertext. Thema: Eugen Salomon, Mitgründer des 1. FSV Mainz 05 (1905), hier liegt sein Stolperstein.",
     frage: "Platzhalter-Rätsel zu Eugen Salomon. (Dummy-Lösung: test)",
     antwort: "test",
-    grossKlein: false
-  },
-  {
-    titel: "Exportierte Revolution",
-    adresse: "Platz der Mainzer Republik, vor dem Deutschhaus",
-    lat: 50.00510, lng: 8.27110,
-    text: "Platzhaltertext. Thema: Mainzer Republik, Jakobiner, Freiheitsbaum, 18. März, Bundespräsident, Nationalfeiertag.",
-    frage: "Platzhalter-Rätsel zur Mainzer Republik. (Dummy-Lösung: test)",
-    antwort: "test",
-    grossKlein: false
+    grossKlein: false,
+    unterwegs: [
+      {
+        titel: "Frauenlobstraße",
+        ort: "Neustadt",
+        punkte: [
+          "Namensgeber ist der Dichter Heinrich von Meißen, genannt Frauenlob: geboren um 1250/60 in Meißen, gestorben am 29. November 1318 in Mainz.",
+          "Er gilt als einer der bedeutendsten mittelhochdeutschen Dichter; sein Hauptwerk, der „Marienleich“, ist ein Lobgesang auf Maria mit deutlich erotischen Anklängen – daher der Beiname „Frauenlob“.",
+          "Zuletzt wirkte er am Hof von Erzbischof Peter von Aspelt (1306–1320) in Mainz.",
+          "Der Legende nach trugen trauernde Frauen seinen Sarg; bestattet wurde er im Kreuzgang des Doms, einem Ort, der sonst meist Geistlichen vorbehalten war. Sein Grabmal wurde mehrfach neu gestaltet, u. a. 1841/42 von Ludwig Schwanthaler.",
+          "Im 19. Jahrhundert wurde er in Mainz fast so hoch geschätzt wie Gutenberg; noch heute erinnern Schulen, Straßen und ein Platz in der Neustadt an ihn.",
+          "Gut zu wissen: 2018/19 zeigte das Dommuseum zum 700. Todestag eine Ausstellung mit einer „Frauenlob-Straße“ aus Gemälden, Grafiken und Skulpturen."
+        ],
+        quellen: "Dommuseum Mainz, Pressemitteilung Frauenlob"
+      },
+      {
+        titel: "Boppstraße (mit Stolpersteinen)",
+        ort: "Neustadt · Hausnummer 64",
+        punkte: [
+          "Die Boppstraße verläuft von der Neustadt bis zum Rand der Altstadt, nicht weit vom Hauptbahnhof.",
+          "Vor Haus Nr. 64 erinnern Stolpersteine an Eugen Salomon und seine Familie.",
+          "Stolpersteine verlegt der Kölner Künstler Gunter Demnig; sie liegen vor dem letzten frei gewählten Wohnort der Verfolgten. Eingraviert sind Name, Geburtsjahr sowie Daten zu Verhaftung, Deportation und Ermordung.",
+          "In Mainz liegen 366 Stolpersteine und eine Stolperschwelle (Stand 17.9.2025); verlegt wird seit 2007, auf private Initiative zusammen mit der Stadt.",
+          "NS-Zeit: Vor 1933 lebten in Mainz rund 2.600 Jüdinnen und Juden; Historiker schätzen, dass etwa 1.300 bis 1.400 von ihnen ermordet wurden.",
+          "Besucher-Tipp: Um die Inschrift zu lesen, muss man sich bücken und den Kopf senken – als Zeichen des Respekts.",
+          "Heutige Erinnerungskultur: Die Fan-Gruppe „FC Ente Bagdad“ putzt die Steine zweimal im Jahr, legt Blumen nieder und hält eine Schweigeminute; Mainz 05 beteiligt sich seit 2017 an den Mainzer Erinnerungswochen."
+        ],
+        quellen: "Stadt Mainz, Stolpersteine; „Mainz Refuge“ – Boppstraße 64"
+      },
+      {
+        titel: "Rote und blaue Straßenschilder",
+        ort: "Orientierung in Mainz",
+        punkte: [
+          "Die Regel: Blaue Schilder stehen an Straßen, die parallel zum Rhein verlaufen; rote an Straßen, die senkrecht vom Rhein weg führen.",
+          "Ursprung: Mitte des 19. Jahrhunderts war die Hausnummerierung kompliziert und oft unlogisch. Der Arzt Dr. Josef Anschel beantragte 1849 im Stadtrat eine Neuordnung.",
+          "Umgesetzt wurde das System 1853: Bürgermeister Nikolaus Nack beauftragte den Stadtbaumeister Laske, Straßen und Hausnummern nach Anschels Plan zu ordnen.",
+          "Die Nummerierung: Bei Straßen senkrecht zum Rhein beginnt sie am Rheinufer, bei parallelen im Süden; gerade Nummern liegen rechts, ungerade links.",
+          "Zweck: schnelle Orientierung, besonders für Ortsfremde – man erkennt auch ohne Blick auf den Fluss, ob man parallel oder quer zum Rhein unterwegs ist. Laut Stadtsprecher gab es das Prinzip schon in Paris und Frankfurt.",
+          "Weiße Schilder gibt es in den Vororten und dort, wo sich keine Rheinrichtung zuordnen lässt; das Farbsystem wurde in 160 Jahren nicht konsequent umgesetzt (Beispiel Finthen).",
+          "Gut zu wissen: Eine Legende erzählt, die Farben sollten verhindern, dass „Schoppestecher“ auf dem Heimweg im Rhein landen – belegt ist das nicht, es ist nur eine Legende.",
+          "Rallye-Tipp: An jeder Kreuzung ein rotes und ein blaues Schild suchen lassen und die Rheinrichtung bestimmen. Die Ludwigsstraße wird als Beispiel für beide Farben genannt."
+        ],
+        quellen: "Merkurist; bycnews.de; VfM Mainz A–Z; „111 Orte in Mainz“ Nr. 92"
+      },
+      {
+        titel: "Werner’s Backstube",
+        ort: "Mainzer Familienbäckerei",
+        punkte: [
+          "Familienbäckerei in Mainz seit 1954; die Seite nennt Friedrich-Christian Werner als Vater und Großvater der heutigen Inhaberfamilie.",
+          "Gebacken wird zentral in Hechtsheim (Stadtteil von Mainz) – kurze Wege zu den einzelnen Bäckerläden.",
+          "Handwerk: hauseigener Drei-Stufen-Sauerteig, lange Teigruhe, Backen auf Steinplatten in energiesparenden Öfen.",
+          "Zutaten: Mehl aus Mühlen im Umland, Dinkelmehl von der Schapfenmühle in Ulm, Eier von Hühnern aus Bodenhaltung.",
+          "Produkte: Meisterbrote „Fridolin“ und „Dombäck“, Premiumbrötchen „echte Meenzer“, regionale Spezialitäten wie Paarweck, Kreppel und Ribbelkuche.",
+          "Engagement: Übrige Backwaren gehen täglich an die Mainzer Tafel und den Brotkorb; Kooperation mit dem Mainzer Dombauverein, Sponsoring der Mainzer Herzstiftung, Partnerschaft mit „Meenzer helfe Meenzer“.",
+          "NS-Zeit: Die Unternehmensseite erwähnt die NS-Zeit nicht; ein belegbarer NS-Bezug liegt nicht vor."
+        ],
+        quellen: "werners-backstube.de"
+      }
+    ]
   },
   {
     titel: "Dalberger Hof",
+    gruppe: 1,
     adresse: "Klarastraße 4",
     lat: 50.00170, lng: 8.26982,
     text: "Platzhaltertext. Thema: Ein Mainzer Adelshof, Gefängnis, Luxuswohnungen.",
     frage: "Platzhalter-Rätsel zum Dalberger Hof. (Dummy-Lösung: test)",
     antwort: "test",
-    grossKlein: false
-  },
-  {
-    titel: "Man of the Millennium",
-    adresse: "Gutenbergplatz, am Gutenberg-Denkmal",
-    lat: 49.99885, lng: 8.27159,
-    text: "Platzhaltertext. Thema: Revolutionär, Handwerker, Geschäftsmann, Wegbereiter der Moderne.",
-    frage: "Platzhalter-Rätsel zum Man of the Millennium. (Dummy-Lösung: test)",
-    antwort: "test",
-    grossKlein: false
+    grossKlein: false,
+    unterwegs: [
+      {
+        titel: "Neue Synagoge Mainz",
+        ort: "Synagogenplatz (früher Hindenburgstraße 44)",
+        punkte: [
+          "Architekt: Manuel Herz (Köln), der 1999 den Wettbewerb gewann. Eröffnung am 3. September 2010 – dem Jahrestag der Einweihung der Hauptsynagoge von 1912.",
+          "Grundstein 23.11.2008, Richtfest 16.10.2009; Kosten rund 11 Mio. €, je ein Drittel von Stadt, Land und Bund. Der Gebetsraum fasst etwa 450 Plätze.",
+          "Der Bau bezieht sich auf das hebräische Wort „Kedushah“ („Heiligung“): Fünf hebräische Buchstaben prägen Form und Struktur; die Fassade besteht aus grün glasierten Keramikprofilen. Das hornförmige Dach, nach Osten ausgerichtet, erinnert an ein Schofar.",
+          "NS-Zeit: Die Hauptsynagoge (1912) wurde in der Pogromnacht 9./10. November 1938 geplündert und in Brand gesetzt und am 17. November 1938 gesprengt.",
+          "Fragmente des Portikus der alten Synagoge stehen auf dem Vorplatz und verbinden beide Gebäude. Die Anschrift lautet heute „Synagogenplatz“, weil der Namensgeber Hindenburg umstritten ist.",
+          "Die Gemeinde zählt heute rund 1.000 Mitglieder, vor allem durch Zuwanderung aus Osteuropa. Der Bau ist innen nicht frei zugänglich; Führungen laufen über die Jüdische Gemeinde (jgmainz.de).",
+          "Auszeichnung: Deutscher Fassadenpreis 2011; nominiert auch für den Mies-van-der-Rohe-Preis.",
+          "Hinweis: Als Außenstopp planen."
+        ],
+        quellen: "Stadt Mainz, Neue Synagoge; Wikipedia EN, New Synagogue (Mainz); Stadt Mainz, „Pfad der Erinnerung“"
+      },
+      {
+        titel: "Rabanus-Maurus-Gymnasium",
+        ort: "Ehrenhof 2 · Neustadt",
+        punkte: [
+          "Gegründet am 9. Dezember 1561 als Jesuitenschule („Kurfürstliches Kolleg der Gesellschaft Jesu“); 1773/74 im Sinne der Aufklärung reformiert (Emmerizianisches Gymnasium). Seinen heutigen Namen erhielt es 1953 nach dem Gelehrten Rabanus Maurus.",
+          "Humanistisches Gymnasium mit rund 1.200 Schülerinnen und Schülern (2019).",
+          "Von 1618 bis 1782 war die Schule zusammen mit der Universität im Domus Universitatis untergebracht.",
+          "Das Schulgebäude wurde 1945 durch einen Brand zerstört; der Unterricht lief zunächst im heutigen Willigis-Gymnasium. Am 14. Juni 1953 zog die Schule ins wiederaufgebaute Gebäude zurück.",
+          "Bekannte Schüler: Carl Zuckmayer (Abitur 1914), Romano Guardini (1903), Walter Hallstein (1920), Harald Martenstein (1972).",
+          "NS-Zeit: Zu den Absolventen gehört auch Werner Best (Abitur 1921), später ein führender Nationalsozialist.",
+          "NS-Zeit: Die Schule liegt direkt am 117er Ehrenhof, der 1933 mit NS-Propaganda eingeweiht wurde."
+        ],
+        quellen: "Wikipedia EN, Rabanus-Maurus-Gymnasium; UB Mainz, „Gestorben für …“"
+      },
+      {
+        titel: "Denkmal der 263. Infanterie-Division („Weintraubendivision“)",
+        ort: "117er Ehrenhof (früher Georg-Forster-Platz)",
+        punkte: [
+          "Der Ehrenhof liegt in der Neustadt zwischen Rabanus-Maurus-Gymnasium und Kaiserstraße. Er erinnert an das Infanterie-Leib-Regiment „Großherzogin“ Nr. 117, das über 200 Jahre bestand und am 30. April 1919 aufgelöst wurde.",
+          "Gestaltung: versenkter, rechteckiger Hof mit Sandsteinwand, in die Schlachtennamen eingraviert sind, dazu ein bronzener Hessischer Löwe von Carl Moritz Hoffmann und das Monogramm der Großherzogin Alice.",
+          "NS-Zeit: Die Einweihung fand im ersten Juliwochenende 1933 statt, dauerte drei Tage und war Teil der NS-Propaganda: Paraden von SS, SA und Polizei, Gäste wie Gauleiter Jakob Sprenger und Großherzog Ernst Ludwig.",
+          "1961 wurde hier ein weiteres Denkmal für die „Division Weintraube“ (263. Infanterie-Division der Wehrmacht) eingeweiht; die Division rekrutierte sich vor allem aus Mainz und Rheinhessen.",
+          "NS-Zeit: Zur Division: aktiv von August 1939 bis Mai 1945, Einsatz an West- und Ostfront (u. a. Unternehmen Barbarossa, Schlacht bei Nevel).",
+          "Nach 1945 verfiel der Ort (Springbrunnen als Rollschuhbahn, Graffiti); seit 1981 unter Denkmalschutz, 1996 erste Sanierung.",
+          "Die Debatte über Denkmal und Namen läuft bis heute im Ortsbeirat der Neustadt – Impuls für die Gruppe: Wie geht man mit Soldatendenkmälern aus NS-Zeit und Nachkriegszeit um?"
+        ],
+        quellen: "UB Mainz, „Gestorben für …“; Wikipedia EN, 263rd Infantry Division"
+      },
+      {
+        titel: "Christuskirche",
+        ort: "Kaiserstraße 56",
+        punkte: [
+          "Entwurf von Stadtbaumeister Eduard Kreyßig (Wettbewerbssieg 1894); nach seinem Tod 1897 vollendete Franz Frederiksson den Bau in vereinfachter Form. Eingeweiht am 2. Juni 1903.",
+          "Stil: Neorenaissance mit griechischem Kreuz als Grundriss und Tambourkuppel nach Vorbild der italienischen Hochrenaissance – die Kuppel erinnerte Zeitgenossen an den Petersdom.",
+          "Die Kirche schließt die Kaiserstraße als monumentaler Einzelbau ab und gilt als evangelisches Gegenstück zum Dom. Die Mainzer Presse war gespalten: Manche fanden sie „zu katholisch“.",
+          "Am 27. Februar 1945 wurde sie stark beschädigt und brannte aus. Wiederaufbau 1951–1954 durch Otto Vogel; die Kuppel wurde gestreckt, die Ausstattung ist schlicht im Stil der 1950er.",
+          "Heute: Bachchor und Bach-Orchester (gegr. 1954 von Diethard Hellmann), jährliches Gospelkonzert „Colours of Gospel“, Eröffnungsgottesdienste der Universität.",
+          "NS-Zeit: Etwas weiter in derselben Straße, Kaiserstraße 31, saß ab etwa 1937 die Mainzer Außenstelle der Gestapo Darmstadt: gefürchtete Verhöre, Folter in den Kellerzellen. Eine Gedenktafel gibt es seit 1990, eine Stele seit 2015.",
+          "NS-Zeit: In der Kaiserstraße liegen außerdem Stolpersteine für deportierte Anwohner."
+        ],
+        quellen: "KuLaDig; Wikipedia EN, Christuskirche (Mainz); Stadt Mainz, „Pfad der Erinnerung“"
+      },
+      {
+        titel: "Justizministerium und Ministerium für Verbraucherschutz",
+        ort: "Regierungsviertel · Ernst-Ludwig-Straße",
+        punkte: [
+          "Das Justizgebäude (Ernst-Ludwig-Straße 3) wurde 1908 als „Großherzogliches Gericht“ mit Haftanstalt fertiggestellt und steht als Einzeldenkmal unter Schutz.",
+          "Es liegt im Mainzer Regierungsviertel zwischen Schloss und Deutschhaus; benachbart sind weitere Ministerien (Wirtschaft, Verkehr, Landwirtschaft und Weinbau, Finanzen) und das Verbraucherschutz-Ressort.",
+          "Mainz wurde 1946 Landeshauptstadt; die Landesregierung zog aber erst 1950/51 von Koblenz um – nach einer umstrittenen Abstimmung.",
+          "1945 waren – je nach Quelle – etwa 80 bis 85 % der Stadt zerstört; alle Gebäude im Planungsgebiet des Regierungsviertels brannten aus oder wurden schwer beschädigt.",
+          "Die Staatskanzlei zog ab 1956 in das umgebaute Alte und Neue Zeughaus (bezogen bis 1960)."
+        ],
+        quellen: "Stadt Mainz, Forum Regierungsviertel; Wikipedia EN, Bombing of Mainz"
+      },
+      {
+        titel: "St. Peter",
+        ort: "Peterskirche · Altstadt",
+        punkte: [
+          "Das Stift St. Peter wurde 944 gegründet; die Schweden zerstörten es 1631. Der Neubau entstand 1749–1756 an anderer Stelle (geweiht 1757, vollendet bis 1762) nach Plänen von Johann Valentin Thoman(n).",
+          "Barocker Hallenbau mit Doppelturmfassade und reicher Rokoko-Ausstattung; die großen Barockaltäre, der Stuck und die Kanzel von Johannes Förster blieben erhalten.",
+          "NS-Zeit: Kriegsschäden: 1944 stürzte nach einem Bombentreffer der Südturm ins Mittelschiff; beim Luftangriff am 27. Februar 1945 verlor die Kirche die Turmfassade und brannte aus. Verloren gingen Orgel, Deckenfresken von Giuseppe Appiani und Chorgestühl.",
+          "Wiederaufbau: bis 1952 notdürftig hergerichtet, ab 1959 Wiederaufbau, 1961 standen die Doppeltürme wieder.",
+          "Die Deckenfresken wurden von Karl Manninger anhand von Farbfotos von Paul Wolff rekonstruiert.",
+          "Gut zu wissen: Die heutige Orgel (1986) stammt ursprünglich aus Nijmegen; zur Kirche gehört die Tradition des „Batzekuchens“.",
+          "Heute ist St. Peter Pfarrkirche der Pfarrei St. Peter/St. Emmeran."
+        ],
+        quellen: "Wikipedia DE, St. Peter (Mainz)"
+      },
+      {
+        titel: "Landtag Rheinland-Pfalz (Deutschhaus)",
+        ort: "Platz der Mainzer Republik 1",
+        punkte: [
+          "Das Deutschhaus war die „Kommende des Deutschen Ordens“. Bauherr war Franz Ludwig von Pfalz-Neuburg (Kurfürst, Erzbischof und Hochmeister), Bauzeit ab 1729/30 im französisch beeinflussten Barock. Er starb 1732 – das Haus diente nie als Residenz.",
+          "Mainzer Republik 1793: Im Deutschhaus tagte ab dem 17. März 1793 der Rheinisch-Deutsche Nationalkonvent, das erste demokratisch gewählte Parlament in Deutschland. Am Folgetag wurde der Rheinisch-Deutsche Freistaat ausgerufen; er endete im Juli 1793 mit der Kapitulation der Stadt.",
+          "Später wohnte hier Napoleon, dann nutzten es die Herzöge von Hessen-Darmstadt; 1870 war es preußisches Hauptquartier.",
+          "NS-Zeit: Am 27. Februar 1945 wurde das Gebäude schwer beschädigt – es blieben nur die Außenmauern.",
+          "Am 28. Mai 1950 beschloss der Landtag den Umzug von Koblenz nach Mainz; der Wiederaufbau war 1951 fertig. Die konstituierende Sitzung fand am 18. Mai 1951 statt, seitdem ist das Deutschhaus der Plenarsaal.",
+          "1999 kam ein Bürogebäude für die Abgeordneten hinzu; der Landtag wurde 2007–2009 renoviert.",
+          "Gut zu wissen: Die Tanzlehrerin Cornelia Willius-Senzer eröffnete 2016 als „Mutter des Hauses“ die Sitzungen des Landtags."
+        ],
+        quellen: "Wikipedia EN, Deutschhaus Mainz; Stadt Mainz, Forum Regierungsviertel; Wikipedia EN, Cornelia Willius-Senzer"
+      },
+      {
+        titel: "Kurfürstliches Schloss",
+        ort: "Peter-Altmeier-Allee 9",
+        punkte: [
+          "Baubeginn 1627 unter Erzbischof Georg Friedrich von Greiffenklau; der Rheinflügel wurde erst Ende des 17. Jahrhunderts fertig (Quellen nennen 1678 bzw. 1687), der Nordflügel um 1752. Baumeister: Matthias von Saarburg.",
+          "Vorläufer: Diether von Isenburg musste nach seiner Wiederwahl 1475 in der Stadt eine Burg bauen (Martinsburg).",
+          "Der letzte Kurfürst des alten Kurstaats, Friedrich Karl Josef von Erthal, wurde 1792 vertrieben; sein Nachfolger Karl Theodor von Dalberg verlegte den Sitz nach Regensburg.",
+          "NS-Zeit: Beim Luftangriff am 27. Februar 1945 wurde das Schloss schwer beschädigt; nur die Außenmauern blieben. Wiederaufbau 1948–1949, Wiedereröffnung am 31. Dezember 1949.",
+          "Bis zur Eröffnung der Rheingoldhalle 1968 war das Schloss die wichtigste Fastnachtsstätte; im Nordflügel läuft bis heute die Fernsehfastnacht „Mainz bleibt Mainz“.",
+          "Im Ostflügel ist das Römisch-Germanische Zentralmuseum untergebracht; das Schloss bietet Platz für bis zu 1.700 Gäste.",
+          "Gut zu wissen: Das Gutenberg-Museum begann 1900 in zwei Räumen des Kurfürstlichen Schlosses."
+        ],
+        quellen: "Wikipedia EN, Electoral Palace, Mainz; Stadt Mainz, Forum Regierungsviertel; Wikipedia EN, Gutenberg Museum"
+      },
+      {
+        titel: "Theodor-Heuss-Brücke",
+        ort: "Mainz – Wiesbaden (Kastel)",
+        punkte: [
+          "Die erste Bogenbrücke wurde am 30. Mai 1885 eingeweiht; sie kostete 3,6 Mio. Goldmark, die laut Quelle innerhalb von drei Jahren durch Maut hereinkamen. Die Maut wurde bis 1912 erhoben.",
+          "Zunächst hieß sie „Straßenbrücke“, später wurde sie nach dem Staatsmann Theodor Heuss benannt.",
+          "Sie verbindet Mainz mit Mainz-Kastel (Wiesbaden) und die Bundesstraßen B40 und B455; Hauptspannweite 102,94 m.",
+          "1931–1934 wurde die Brücke verbreitert.",
+          "NS-Zeit: Am 17. März 1945 sprengten deutsche Pioniere die Brücke, um eine zweite Situation wie bei Remagen zu verhindern (dort fiel eine Rheinbrücke den Alliierten unzerstört in die Hände).",
+          "Wiederaufbau 1948–1950; teilweise Rekonstruktion 1992–1995.",
+          "Gut zu wissen: Laut Wikipedia gab es an dieser Stelle schon eine römische Brücke aus dem Jahr 27 n. Chr."
+        ],
+        quellen: "Wikipedia EN, Theodor Heuss Bridge (Mainz-Wiesbaden)"
+      },
+      {
+        titel: "Karmeliter-Kloster",
+        ort: "Karmeliterplatz",
+        punkte: [
+          "Die Karmeliter ließen sich um 1275 im nördlichen Stadtgebiet nieder und wurden 1285 erstmals urkundlich erwähnt.",
+          "Die gotische Kirche entstand zwischen 1326 und etwa 1350; von 1477 bis 1497 diente sie neben religiösen auch weltlichen Zwecken.",
+          "Zwischen 1700 und 1713 wurden die Klostergebäude neu errichtet und danach für schulische Zwecke genutzt.",
+          "Nach der Säkularisation 1802 diente die Kirche als Magazin, in den 1830er-Jahren als Lagerhaus.",
+          "1924 kehrten holländische Karmeliter zurück, die Kirche wurde neu geweiht; 1958 wurden das verschieferte Dach und der Dachreiter wiederhergestellt.",
+          "Ganz in der Nähe liegt die Kirchenruine St. Christoph."
+        ],
+        quellen: "KuLaDig; Wikipedia DE, St. Christoph (Mainz)"
+      },
+      {
+        titel: "Tanzschule Willius-Senzer",
+        ort: "in der Nähe des Karmeliterplatzes",
+        punkte: [
+          "Cornelia Willius-Senzer, geboren am 13. Juli 1943 in Mainz (geb. Scherning), ist Unternehmerin, Tanzlehrerin und FDP-Politikerin.",
+          "In ihrer Jugend studierte sie Sprachen und arbeitete als Dolmetscherin in Paris.",
+          "Sie ist Ehrenpräsidentin des Allgemeinen Deutschen Tanzlehrerverbands (ADTV) und Präsidentin des European Dance Council.",
+          "Verheiratet ist sie mit Horst Willius-Senzer, dem Erben eines Tanzstudios; die beiden lernten sich 1971 kennen.",
+          "Politik: 2003 Eintritt in die FDP, seit der Landtagswahl 2016 Abgeordnete; sie eröffnete als „Mutter des Hauses“ die Sitzungen und führte 2017 bis März 2021 die FDP-Fraktion. 2021 wurde sie wiedergewählt.",
+          "Brücke zur Tour: Der Landtag (Deutschhaus) war ihr Arbeitsplatz."
+        ],
+        quellen: "Wikipedia EN, Cornelia Willius-Senzer"
+      },
+      {
+        titel: "Ruine und Gedenkstätte St. Christoph",
+        ort: "Hintere Christofsgasse 3–5",
+        punkte: [
+          "Frühgotische Kirche in der Altstadt nahe dem Karmeliterplatz. Der heutige Bau entstand etwa zwischen 1240 und 1330, der romanische Turm um 1240.",
+          "Die Kirche wird im 9. Jahrhundert erstmals über eine Schenkung an das Stift St. Maximin in Trier erwähnt; 1272 erscheint sie als Pfarrkirche.",
+          "Hier wurde Johannes Gutenberg getauft. Neben der Kirche steht eine Gutenberg-Statue von Karlheinz Oswald (2000).",
+          "NS-Zeit: Ein Luftangriff im August 1942 setzte die Kirche in Brand (11./12. und 12./13. August 1942: zusammen rund 290 Flugzeuge, die Altstadt und der Dom wurden stark getroffen, Hunderte Menschen starben).",
+          "NS-Zeit: Beim Angriff im Februar 1945 stürzten die Gewölbe ein – nur die Grundmauern blieben.",
+          "Heute ist die Ruine ein Kriegsmahnmal. Die Tafel trägt die Inschrift „Den Toten zum Gedenken / Den Lebenden zur Mahnung“.",
+          "Im Turmuntergeschoss befindet sich eine Kapelle, die die orthodoxe Gemeinde nutzt (byzantinischer Ritus).",
+          "Gut zu wissen: Das Gnadenkreuz, das bis 1942 verehrt wurde, befindet sich heute im Priesterseminar Mainz."
+        ],
+        quellen: "Wikipedia DE, St. Christoph (Mainz); Wikipedia EN, Bombing of Mainz in World War II"
+      }
+    ]
   },
   {
     titel: "Gouvernement",
+    gruppe: 4,
     adresse: "Schillerplatz 1, vor dem Osteiner Hof (Gouvernement)",
     lat: 49.99742, lng: 8.26819,
     text: "Platzhaltertext. Thema: Gouvernement, Braunes Haus, 11.11.",
     frage: "Platzhalter-Rätsel zum Gouvernement. (Dummy-Lösung: test)",
     antwort: "test",
-    grossKlein: false
+    grossKlein: false,
+    unterwegs: [
+      {
+        titel: "Römerpassage (Isis- und Mater-Magna-Heiligtum)",
+        ort: "Adolf-Kolping-Straße 4",
+        punkte: [
+          "Das Heiligtum wurde 1999 beim Bau der heutigen Römerpassage (damals Lotharpassage) in rund fünf Metern Tiefe entdeckt; die Grabung dauerte etwa 17 Monate bis Anfang 2001.",
+          "Es entstand im 1. Jahrhundert n. Chr. und wurde bis in die Spätantike genutzt. Weihinschriften nennen Isis Panthea und Magna Mater – beide Weihungen stammen vom selben Priester, Claudius Atticus.",
+          "Unter dem Heiligtum fand man ein frühhallstattzeitliches Grab (680–650 v. Chr.): eine Frau von 35 bis 45 Jahren unter einem Grabhügel mit Steinkreis.",
+          "Funde: etwa 300 Lampen, 34 Bleitafeln mit Fluchtexten (meist wegen Diebstahl, Betrug, Verleumdung) und ein bronzener tanzender Zwerg.",
+          "Gut zu wissen: Rund 90 % der Tierknochen stammen von Hähnen.",
+          "Ein Bürgerprotest mit rund 20.000 Unterschriften verhinderte die vollständige Zerstörung. Erhalt und Versetzung kosteten etwa 3,5 Mio. €.",
+          "Seit dem 30. August 2003 als „Taberna archaeologica“ im Keller der Passage zugänglich; Oktober 2023 „Museum des Monats“.",
+          "NS-Zeit: Kein NS-Bezug – die Passage zeigt, wie viel Mainzer Geschichte erst nach 1990 entdeckt wurde."
+        ],
+        quellen: "Wikipedia EN, Sanctuary of Isis and Magna Mater in Mainz"
+      },
+      {
+        titel: "Emmeranstraße und Kirche St. Emmeran",
+        ort: "Altstadt",
+        punkte: [
+          "Die Kirche ist Bischof Emmeram von Regensburg geweiht, der 652 als Märtyrer starb. Eine Urkunde von 1220 nennt sie „St. Heimerammi“.",
+          "Erhalten ist ein romanischer Turm aus dem späten 12. Jahrhundert; um 1300 entstand eine gotische Basilika im schlichten Stil der Bettelorden. Barocke Veränderungen folgten 1700/01 und 1762.",
+          "NS-Zeit: Der Luftangriff am 27. Februar 1945 zerstörte die Kirche: Die meisten Gewölbe stürzten ein, Ausstattung und Orgel verbrannten.",
+          "Stadtkonservator Fritz Arens rettete zuvor u. a. die Rokokokanzel und das Hochaltarbild von Maulbertsch, indem er sie in die Domkrypta brachte.",
+          "Wiederaufbau: Chor 1952 gesichert und 1978 restauriert; der Turm verlor 1966 seine Barockhaube; das Schiff wurde 1978–1981 gestützt.",
+          "Heute dient die Kirche der italienischen Gemeinde als Gemeindezentrum; kirchlich gehört sie zur Pfarrei St. Peter/St. Emmeran.",
+          "Gut zu wissen: Die Glocke „Hosanna“ (1379) ging 1945 verloren; die Beatrix-Glocke von 1493 hängt heute im Turm von St. Stephan."
+        ],
+        quellen: "Wikipedia DE, St. Emmeran (Mainz); Stadt Mainz, Stolpersteine"
+      },
+      {
+        titel: "Schiller-Denkmal am Schillerplatz",
+        ort: "Schillerplatz",
+        punkte: [
+          "Der Schillerplatz war ein mittelalterlicher Markt und hieß zeitweise „Thiermarkt“; seit 1862 trägt er den Namen Schillerplatz.",
+          "Das Schiller-Denkmal wurde zu Schillers 100. Geburtstag 1859 beauftragt; die Bronzefigur schuf Johann Baptist Scholl der Jüngere, enthüllt wurde sie am 18. Oktober 1862.",
+          "Die barocke Kirche St. Agnes wurde 1809 abgerissen, um Platz für die geplante „Grande Rue Napoléon“ zu schaffen.",
+          "NS-Zeit: Im Juli 1930 wurde hier das Befreiungsdenkmal des jüdischen Künstlers Benno Elkan enthüllt; im März 1933 wurde es entfernt und später zerstört.",
+          "NS-Zeit: Der Schönborner Hof (Schillerstraße 11) beherbergte ab Mai 1933 die NSDAP-Kreisleitung sowie NSBO und DAF; nach Bombenschäden 1942 und Wiederaufbau 1952 sitzt dort das Institut Français.",
+          "NS-Zeit: Der Osteiner Hof am Platz wurde 1933 NSDAP-Haus.",
+          "Der Bassenheimer Hof (um 1750 als Witwenpalais gebaut) ist heute Sitz des Innenministers.",
+          "Gut zu wissen: Am Platz steht auch der Fastnachtsbrunnen."
+        ],
+        quellen: "Wikipedia DE, Schillerplatz (Mainz); Stadt Mainz, „Pfad der Erinnerung“; Stadt Mainz, Stadtspaziergang „Römer, Narren, Kurfürsten“"
+      },
+      {
+        titel: "St. Stephan mit den Chagall-Fenstern",
+        ort: "Stephansberg",
+        punkte: [
+          "St. Stephan wurde 990 auf Anordnung von Erzbischof Willigis gegründet – als Gebetsort für das Reich. Willigis wurde 1011 in der Stiftskirche bestattet; sein Grab ist unbekannt.",
+          "Der heutige Bau (ca. 1267–1340) ist die älteste gotische Hallenkirche im Oberrheingebiet, mit drei Schiffen, Doppelchor und markantem achteckigem Glockenturm.",
+          "Ein Pulvermagazin-Unglück zerstörte 1857 die barocke Fassade; im Zweiten Weltkrieg wurde die Kirche schwer beschädigt, die Gewölbe wichen einer flachen Holzdecke. Der Kreuzgang (1462–1499) wurde 1968–1971 wiederaufgebaut.",
+          "Zwischen 1978 und 1985 schuf Marc Chagall neun Glasfenster mit biblischen Gestalten des Alten Testaments, dominiert von leuchtendem Blau – in Deutschland einzigartig.",
+          "Anlass war Chagalls Freundschaft mit Monsignore Klaus Mayer; Chagall verstand die Fenster als Beitrag zur jüdisch-deutschen Aussöhnung (Beginn 1978).",
+          "Nach Chagalls Tod 1985 führten sein Schüler Charles Marq und andere das Werk fort.",
+          "Erhalten blieben ein Altar aus dem 13. Jahrhundert und ein großes Tabernakel von etwa 1500.",
+          "Gut zu wissen: Die Beatrix-Glocke von 1493 aus St. Emmeran hängt im Turm von St. Stephan."
+        ],
+        quellen: "Wikipedia EN, St. Stephan, Mainz; Wikipedia DE, St. Emmeran (Mainz)"
+      }
+    ]
   },
   {
-    titel: "Kommunistin im Exil",
-    adresse: "Parcusstraße, Gedenktafel am Geburtshaus (Ort vorläufig)",
-    lat: 50.00157, lng: 8.26155,
-    text: "Platzhaltertext. Thema: Literarisches Denkmal, Das siebte Kreuz.",
-    frage: "Platzhalter-Rätsel zur Kommunistin im Exil. (Dummy-Lösung: test)",
+    titel: "Man of the Millennium",
+    gruppe: 2,
+    adresse: "Gutenbergplatz, am Gutenberg-Denkmal",
+    lat: 49.99885, lng: 8.27159,
+    text: "Platzhaltertext. Thema: Revolutionär, Handwerker, Geschäftsmann, Wegbereiter der Moderne.",
+    frage: "Platzhalter-Rätsel zum Man of the Millennium. (Dummy-Lösung: test)",
     antwort: "test",
-    grossKlein: false
+    grossKlein: false,
+    unterwegs: [
+      {
+        titel: "Fastnachtsbrunnen",
+        ort: "Schillerplatz",
+        punkte: [
+          "Enthüllt am 14. Januar 1967 nach rund drei Jahren Bauzeit; er symbolisiert die „fünfte Jahreszeit“.",
+          "Finanziert wurde er von der Eckes AG (Nieder-Olm, Ludwig Eckes), nachdem die Stadt 1963 Mainzer Industrielle um Unterstützung gebeten hatte.",
+          "Eine Jury unter Vorsitz von Ewald Mataré wählte den Entwurf des Münchner Künstlers Blasius Spreng aus 234 Vorschlägen; er entwickelte ihn mit dem Mainzer Architekten Helmut Gräf.",
+          "Gestalt: knapp 9 m hoher Bronzeturm mit über 200 Figuren – u. a. Vater Rhein, Mönch, Narr, Till Eulenspiegel, Stadtgöttin Moguntia, Geldbeutelwäscher und Eselsreiter (eine alte Schandstrafe). Dazu der Spruch „Weck, Worscht un Woi“.",
+          "Das Becken aus rotem Sandstein stammt ebenfalls von Gräf.",
+          "NS-Zeit: An derselben Stelle stand von 1930 bis 1933 das Befreiungsdenkmal von Benno Elkan.",
+          "Gut zu wissen: In der Fastnachtszeit soll der Brunnen den „auf den Kopf gestellten Mainzer Dom“ darstellen – am besten von der Westseite des Platzes zu sehen.",
+          "Die Mainzer nahmen den Brunnen laut Quelle gut an."
+        ],
+        quellen: "Wikipedia EN/DE, Fastnachtsbrunnen (Mainz); Stadt Mainz, Stadtspaziergang"
+      },
+      {
+        titel: "Ludwigsstraße / Kreuzung Weißliliengasse",
+        ort: "Altstadt",
+        punkte: [
+          "Napoleon ordnete 1804 eine neue Prachtstraße samt Platz an; die Straße hieß ab 1809 „Grande Rue Napoléon“, ab 1814 „Neue Straße“ und später Ludwigsstraße.",
+          "1961 verbreiterte Ernst May die Ludwigsstraße; Kritiker meinten, das schwäche die Identität des Gutenbergplatzes.",
+          "NS-Zeit: Am 23. Juni 1933 zogen NS-Studenten mit Büchern „undeutscher“ Autoren durch Ludwigstraße und Schillerstraße zum heutigen Jockel-Fuchs-Platz (damals Adolf-Hitler-Platz) und verbrannten sie – darunter Werke von Anna Seghers und Rudolf Frank. Seit 2006 erinnert eine Stele an der Rheinuferpromenade daran.",
+          "Seit dem Aus von Karstadt im Herbst 2020 wird die Straße rund um das Projekt „LU“ neu entwickelt.",
+          "Rote und blaue Straßenschilder: In „111 Orte in Mainz“ wird die Ludwigsstraße als Beispiel für beide Farben genannt – an der Kreuzung bitte die Rheinrichtung bestimmen."
+        ],
+        quellen: "Wikipedia DE, Gutenbergplatz (Mainz); Stadt Mainz, „Pfad der Erinnerung“; lu-erleben.de; „111 Orte in Mainz“"
+      },
+      {
+        titel: "LuLu / LU erleben",
+        ort: "Ludwigsstraße 12 · Fuststraße · Gutenbergplatz",
+        punkte: [
+          "Nach dem Aus von Karstadt im Herbst 2020 entwickelten die J. Molitor Immobilien GmbH und die Sparkasse Rhein-Nahe ein Konzept für einen neuen Innenstadt-Standort.",
+          "„Lulu“ war die Pop-up-Fläche im ehemaligen Karstadt: ursprünglich auf ein bis zwei Jahre angelegt, schloss sie am 31. Dezember 2023 nach drei Jahren.",
+          "Die Ausstellung „The Mystery of Banksy“ lockte laut Website rund 40.000 Besucher.",
+          "Konzept „LU“: Einzelhandel, Genuss und Kultur. Der erste Bauabschnitt (Fuststraße/Gutenbergplatz) hat kulturellen Schwerpunkt mit Proben- und Konzertsaal für das Staatsorchester und der neuen Anna-Seghers-Bibliothek (Eröffnung Sommer 2028 vorgesehen, falls die Förderzusage zügig kommt).",
+          "Ludwigsstraße 12: Handel, Gastronomie und ein Hotel mit rund 190 Zimmern.",
+          "Gut zu wissen: Geplant ist eine Dachlandschaft mit Rooftop-Bar und Blick auf Dom, Staatstheater und Fastnachtsbrunnen.",
+          "Nachhaltigkeit: Dach- und Fassadenbegrünung, Geothermie, Photovoltaik, Fernwärme; die Bäume an der Ludwigsstraße sollen erhalten bleiben. Parkhaus mit ca. 300 Stellplätzen geplant.",
+          "Der Hauptbahnhof ist laut Website etwa 10 Minuten zu Fuß entfernt."
+        ],
+        quellen: "lu-erleben.de"
+      },
+      {
+        titel: "50. Breitengrad auf dem Gutenbergplatz",
+        ort: "Bodenmarkierung",
+        punkte: [
+          "Ein Pflasterstreifen quer über den Gutenbergplatz und die Ludwigsstraße markiert den 50. Breitengrad nördlicher Breite.",
+          "Gut zu wissen: Laut Wikipedia-Artikel liegt der Streifen etwa 120 m südlich der tatsächlichen 50°-Linie nach WGS 84.",
+          "Ort: der Gutenbergplatz – größter und wichtigster Platz der Mainzer Innenstadt und als Denkmalzone geschützt.",
+          "Orientierung: Das Staatstheater schließt den Platz im Süden ab; das Gutenberg-Denkmal steht seit 1837 in der Mitte.",
+          "Impuls für die Gruppe: Die Markierung im Pflaster suchen lassen und fragen, was „50° nördlicher Breite“ bedeutet."
+        ],
+        quellen: "Wikipedia DE, Gutenbergplatz (Mainz); Stadt Mainz, Stadtspaziergang „Mainz kompakt“"
+      },
+      {
+        titel: "Staatstheater Mainz (Mollerbau)",
+        ort: "Gutenbergplatz",
+        punkte: [
+          "Das Große Haus entstand 1829–1833 nach Plänen von Georg Moller im klassizistischen Stil; es bot rund 1.500 Plätze und kostete 280.000 Gulden.",
+          "Eröffnung am 21. September 1833 mit Webers Jubelouverture und Mozarts Oper „La clemenza di Tito“.",
+          "Moller wölbte den Zuschauerraum nach außen – damals eine Revolution im Theaterbau.",
+          "NS-Zeit: Bombenschäden 1942 brannten das Theater aus; Wiederaufbau 1950–1951 nach Plänen von Richard Jörg, Wiedereröffnung am 24. November 1951 mit einem Ballett.",
+          "Bis 1989 hieß das Haus Stadttheater, danach Staatstheater (GmbH unter Trägerschaft von Stadt und Land).",
+          "Sparten: Oper, Schauspiel, Ballett (tanzmainz); Ensemble ist das Philharmonische Staatsorchester. Das Kleine Haus (1997) ist über einen unterirdischen Gang und einen Skywalk verbunden.",
+          "Gut zu wissen: Wikipedia nennt das Haus für 2026 „Opernhaus des Jahres“ (Opernwelt) – bitte vor Ort bestätigen."
+        ],
+        quellen: "Wikipedia EN, Staatstheater Mainz; Stadt Mainz, Stadtspaziergang „Mainz kompakt“"
+      }
+    ]
   },
   {
-    titel: "Zurück am Hauptbahnhof",
-    adresse: "Bahnhofplatz, vor dem Haupteingang",
-    lat: 50.00105, lng: 8.25900,
-    text: "Wir sind wieder am Ausgangspunkt. Platzhaltertext für den Abschluss.",
-    frage: "Platzhalter-Abschlussrätsel. (Dummy-Lösung: test)",
+    titel: "Exportierte Revolution",
+    gruppe: 6,
+    adresse: "Marktplatz, an der Heunensäule am Höfchen",
+    lat: 49.99950, lng: 8.27330,
+    text: "Platzhaltertext. Thema: Mainzer Republik, Jakobiner, Freiheitsbaum, 18. März, Bundespräsident, Nationalfeiertag.",
+    frage: "Platzhalter-Rätsel zur Mainzer Republik. (Dummy-Lösung: test)",
     antwort: "test",
-    grossKlein: false
+    grossKlein: false,
+    unterwegs: [
+      {
+        titel: "Alter Dom St. Johannis",
+        ort: "Johannisstraße / Bischofsplatz · nur kurz zeigen",
+        punkte: [
+          "St. Johannis gilt laut Stadt Mainz als älteste Kirche der Stadt und als einziges Kirchengebäude aus der Merowingerzeit (7. Jahrhundert), das seine Raumstruktur bewahrt hat; die Mauern stehen teils bis 16 m hoch.",
+          "Sie entstand teils auf Mauern eines Vorgängerbaus des 4./5. Jahrhunderts. Forschende nennen sie „den ältesten mittelalterlichen Dom nördlich der Alpen“.",
+          "Die Datierung ist nicht ganz einheitlich: Eine andere Beschreibung nennt Erzbischof Hatto (891–913) als Erbauer um 900.",
+          "Mit dem Bau des Willigis-Doms (1036 geweiht) wurde St. Johannis zur Stiftskirche.",
+          "1828 ging die Kirche an die evangelische Gemeinde; 1906 gestaltete Friedrich Pützer den Innenraum im Darmstädter Jugendstil.",
+          "NS-Zeit: Ein Luftangriff 1942 ließ die Kirche ausbrennen; die Mauern überstanden den Krieg. Wiederweihe 1956 durch Architekt Karl Gruber.",
+          "Seit 2013 wird die Baugeschichte intensiv erforscht; derzeit ist die Kirche wegen der Ausgrabungen geschlossen, Besuche nur nach Absprache.",
+          "Gut zu wissen: Forschende wissen bis heute nicht, warum die frühen Christen gerade diesen Ort wählten."
+        ],
+        quellen: "Stadt Mainz, St. Johannis; evangelisch.de, „Alt, älter, St. Johannis“"
+      }
+    ]
+  },
+  {
+    titel: "Hof Ehrenfels",
+    adresse: "Grebenstraße 5–7 · Abschluss gegen 16:15 Uhr",
+    lat: 49.99786, lng: 8.27420,
+    text: "Ende der Rallye. Zeit für Reflexion: Welche Station hat euch am meisten beeindruckt?",
+    frage: null,
+    weiterText: "Rundgang abschließen",
+    unterwegs: [
+      {
+        titel: "Marktbrunnen",
+        ort: "Marktplatz",
+        punkte: [
+          "Gestiftet von Kardinal Albrecht von Brandenburg (Kurfürst und Erzbischof von Mainz) – nach Angabe der Stadt 1526; Wikipedia nennt kein eindeutiges Jahr (verwiesen wird auf 1519 im Zusammenhang mit dem Bildhauer Peter Schro, Schüler von Hans Backoffen).",
+          "Anlass war das Ende des Deutschen Bauernkriegs, der in Mainz blutig niedergeschlagen wurde. Die Inschrift ehrt außerdem Kaiser Karl V. und dessen Sieg bei Pavia über Franz I.",
+          "Die lateinische Stifterinschrift beginnt mit „ACCIPE POSTERITAS …“ – obwohl der Brunnen für Analphabeten gedacht war.",
+          "Der rote Sandsteinbrunnen gilt als ältester und wohl schönster Renaissancebrunnen Deutschlands (Stadt Mainz).",
+          "Motive: Fabelwesen mit Wappen und Kardinalshut, Totenkopf und Sanduhr, ein betrunkener Bauer mit rotem Hahn („O BEDENK DAS END“) sowie die Stadtpatrone Martin, Bonifatius und Ulrich.",
+          "Ursprünglich ein Ziehbrunnen, 1767 zum Pumpbrunnen umgebaut; 1889 versetzt, 1890 kam die Madonnenfigur (Valentin Barth) hinzu, 1975 kehrte er an seinen ursprünglichen Standort zurück.",
+          "NS-Zeit: Im Zweiten Weltkrieg wurde der Brunnen zugemauert und überstand die Bombardierung ohne größere Schäden."
+        ],
+        quellen: "Wikipedia EN, Marktbrunnen (Mainz); Stadt Mainz, Stadtspaziergang „Mainz kompakt“"
+      },
+      {
+        titel: "Kanonenkugeln in der Wand",
+        ort: "Markt 35",
+        punkte: [
+          "Zu den Kanonenkugeln am Markt 35 gibt es keine gesicherten Angaben (Alter, Anlass, Inschrift).",
+          "Hintergrund, falls die Kugeln auf die Belagerung von 1793 zurückgehen (nicht belegt, nur Einordnung): Die Belagerung dauerte vom 14. April bis 23. Juli 1793; die Beschießung begann in der Nacht zum 17. Juni.",
+          "Beschädigt oder zerstört wurden u. a. Komödienhaus, Liebfrauenkirche, Jesuitenkirche und St. Crucis; der Dom wurde schwer beschädigt.",
+          "Mit der Kapitulation am 23. Juli 1793 endete die Mainzer Republik; die Stadt erhielt einen preußischen Kommandanten.",
+          "Die Liebfrauenkirche am Liebfrauenplatz wurde 1793 von preußischer und österreichischer Artillerie beschossen und 1807 abgerissen.",
+          "Gut zu wissen: Goethe begleitete Herzog Carl August bei der Belagerung und schrieb später einen bekannten Bericht („Belagerung von Mainz“)."
+        ],
+        quellen: "Wikipedia EN, Siege of Mainz (1793); Wikipedia EN, Liebfrauenplatz (Mainz)"
+      },
+      {
+        titel: "Nagelsäule",
+        ort: "Liebfrauenplatz, östlich des Doms",
+        punkte: [
+          "Die Nagelsäule wurde am 1. Juli 1916 im Ersten Weltkrieg errichtet; sie entstand durch eine Spendenaktion („Kriegssäule“).",
+          "Jeder Nagel kostete 1 bis 20 Reichsmark; insgesamt kamen 170.000 Reichsmark für soziale Einrichtungen zusammen.",
+          "Drei allegorische Säulen stehen um sie herum: Einigkeit, Kraft und Mildtätigkeit.",
+          "Sie wurde 2006–2010 renoviert und wieder aufgestellt; die Stadt nennt 2011 als Jahr, seit dem das Ensemble wieder an seinem ursprünglichen Platz steht.",
+          "Der Liebfrauenplatz ist seit 1975 Fußgängerzone; hier finden Bauernmarkt (Di, Fr, Sa), Marktfrühstück und Teile des Weihnachtsmarkts statt, und der Rosenmontagszug überquert den Platz.",
+          "Auf dem Platz stand die Liebfrauenkirche (1069 erbaut, 1793 beschossen, 1807 abgerissen).",
+          "Gut zu wissen: 2018 lehnten die Mainzer per Bürgerentscheid mit 77 % den „Bibelturm“-Erweiterungsbau des Gutenberg-Museums ab.",
+          "NS-Zeit: Kein NS-Bezug belegt; nach dem Bombenangriff fehlten einige Randgebäude des Platzes, wodurch er größer wurde."
+        ],
+        quellen: "Stadt Mainz, Stadtspaziergang „Mainz kompakt“; Wikipedia EN, Liebfrauenplatz (Mainz); Münzel-Everling, Kriegsnagelungen"
+      },
+      {
+        titel: "Mainzer Dom St. Martin (Ansicht von vorne)",
+        ort: "Liebfrauenplatz 4",
+        punkte: [
+          "Der Bau begann unter Erzbischof Willigis ab 975 (Datum unsicher). Eine Brandkatastrophe zerstörte den Dom 1009 – vermutlich durch Fackelbeleuchtung. Die Weihe erfolgte am 10. November 1036 in Anwesenheit von Kaiser Konrad II.",
+          "Nach Bränden folgte ab etwa 1100 der Neubau unter Heinrich IV.; der spätromanische Westbau entstand 1200–1239. Gotische Seitenkapellen kamen ab 1279 hinzu.",
+          "Nach einem Blitzschlag 1767 wurde der Westturm 1769 von Franz Ignaz Michael Neumann in Stein erneuert; den neoromanischen Ostturm baute Cuypers 1875.",
+          "Original erhalten sind Willigis’ Bronzetüren (heute Marktportal). Der Dom war Krönungsort deutscher Könige.",
+          "Der Westchor ist der Bischofschor; in der Westkrypta (1927/28) sind spätere Bischöfe bestattet, darunter Kardinal Karl Lehmann.",
+          "NS-Zeit: Der Dom wurde im August 1942 sowie am 8. September 1944 und am 27. Februar 1945 getroffen.",
+          "NS-Zeit: Bischof Albert Stohr (gewählt 10. Juni 1935, Bischofsweihe 24. August 1935) predigte 1941 im Rahmen der katholischen Proteste gegen die NS-Euthanasie.",
+          "Gut zu wissen: Im Dom liegt auch der Dichter Frauenlob begraben."
+        ],
+        quellen: "Wikipedia DE, Mainzer Dom; Wikipedia EN, Albert Stohr; Stadt Mainz, Stadtspaziergang „Mainz kompakt“"
+      },
+      {
+        titel: "Gutenberg-Museum",
+        ort: "Liebfrauenplatz 5",
+        punkte: [
+          "Gegründet 1900 von Mainzer Bürgern zu Gutenbergs 500. Geburtstag – eines der ältesten Druckmuseen der Welt.",
+          "Erst zwei Räume im Kurfürstlichen Schloss, 1912 ein Bibliotheksgebäude, 1927 das Haus „Zum Römischen Kaiser“ (1664); das Ausstellungsgebäude von 1962 stammt von Rainer Schell.",
+          "Zu den größten Schätzen zählen zwei originale Gutenberg-Bibeln aus der Mitte des 15. Jahrhunderts; die 42-zeiligen Bibeln gelten als die ersten gedruckten Bücher.",
+          "Auf rund 3.000 m² zeigt das Museum Handschriften, Inkunabeln, Druckgrafik, Setzmaschinen und Pressen. Die nachgebaute Gutenberg-Werkstatt wird fast stündlich vorgeführt.",
+          "Jährlich kommen rund 160.000 Besucher.",
+          "NS-Zeit: Das Haus „Zum Römischen Kaiser“ wurde 1945 schwer bombardiert, die Exponate waren vorher sicher ausgelagert; die Restaurierung war 1962 beendet.",
+          "Gut zu wissen: Zur Exlibris-Sammlung (rund 100.000 Blätter) gehört laut Wikipedia auch ein Exlibris Adolf Hitlers.",
+          "2018 scheiterte der geplante Erweiterungsbau „Bibelturm“ in einem Bürgerentscheid (77 % Nein)."
+        ],
+        quellen: "Stadt Mainz, Gutenberg-Museum; Wikipedia EN, Gutenberg Museum; Wikipedia EN, Liebfrauenplatz (Mainz)"
+      },
+      {
+        titel: "Umweg über das „Kalte Loch“ / Domstraße",
+        ort: "Altstadt rund um den Dom",
+        punkte: [
+          "Zum „Kalten Loch“ (Lage, Name, Geschichte) gibt es keine gesicherten Angaben – vor Ort Straßenschild bzw. Tafel prüfen.",
+          "Umgebung: Die barocken Domhäuser stammen von Johann Valentin Thomann.",
+          "Der Dom (Beginn 975 unter Willigis) wird von mehreren Plätzen umgeben; der Liebfrauenplatz ist der östlichste der vier Domplätze.",
+          "Die Domplätze wurden 1975 neu gestaltet (Fußgängerzone, Rückkehr des Marktbrunnens, Heunensäule).",
+          "NS-Zeit: Die Altstadt wurde im August 1942 (11./12. und 12./13. August) schwer bombardiert; auch der Dom wurde stark getroffen.",
+          "Impuls für die Gruppe: Wie verändert sich das Stadtbild, wenn man aus den weiten Plätzen in eine enge Gasse geht?"
+        ],
+        quellen: "Stadt Mainz, Stadtspaziergang „Mainz kompakt“; Wikipedia EN, Liebfrauenplatz (Mainz); Wikipedia EN, Bombing of Mainz in World War II"
+      }
+    ]
   }
 ];
 
+/* ---------- Koordinaten der Zwischenstopps (Route führt in dieser Reihenfolge daran vorbei) ----------
+   Stopps ohne Eintrag (kein fester Punkt) erscheinen nur in der Liste, nicht auf der Karte.
+*/
+const KOORD = {
+  "Frauenlobstraße": [50.00400, 8.25960],
+  "Boppstraße (mit Stolpersteinen)": [50.00433, 8.26023],
+  "Werner’s Backstube": [50.00471, 8.25966],
+  "Neue Synagoge Mainz": [50.00861, 8.25941],
+  "Rabanus-Maurus-Gymnasium": [50.00757, 8.26534],
+  "Denkmal der 263. Infanterie-Division („Weintraubendivision“)": [50.00714, 8.26488],
+  "Christuskirche": [50.00734, 8.26657],
+  "Justizministerium und Ministerium für Verbraucherschutz": [50.00602, 8.26860],
+  "St. Peter": [50.00475, 8.26982],
+  "Landtag Rheinland-Pfalz (Deutschhaus)": [50.00549, 8.27173],
+  "Kurfürstliches Schloss": [50.00685, 8.26977],
+  "Theodor-Heuss-Brücke": [50.00570, 8.27480],
+  "Karmeliter-Kloster": [50.00276, 8.27336],
+  "Ruine und Gedenkstätte St. Christoph": [50.00190, 8.27213],
+  "Römerpassage (Isis- und Mater-Magna-Heiligtum)": [50.00130, 8.26788],
+  "Emmeranstraße und Kirche St. Emmeran": [50.00021, 8.26821],
+  "Schiller-Denkmal am Schillerplatz": [49.99860, 8.26724],
+  "St. Stephan mit den Chagall-Fenstern": [49.99566, 8.26878],
+  "Fastnachtsbrunnen": [49.99806, 8.26801],
+  "Ludwigsstraße / Kreuzung Weißliliengasse": [49.99809, 8.26956],
+  "LuLu / LU erleben": [49.99818, 8.27071],
+  "50. Breitengrad auf dem Gutenbergplatz": [49.99900, 8.27120],
+  "Staatstheater Mainz (Mollerbau)": [49.99929, 8.27156],
+  "Alter Dom St. Johannis": [49.99841, 8.27238],
+  "Marktbrunnen": [49.99947, 8.27410],
+  "Kanonenkugeln in der Wand": [49.99959, 8.27499],
+  "Nagelsäule": [49.99918, 8.27482],
+  "Mainzer Dom St. Martin (Ansicht von vorne)": [49.99888, 8.27383],
+  "Gutenberg-Museum": [49.99951, 8.27560],
+  "Umweg über das „Kalte Loch“ / Domstraße": [49.99846, 8.27486]
+};
+STATIONEN.forEach(s => (s.unterwegs || []).forEach(u => {
+  const k = KOORD[u.titel];
+  if (k) { u.lat = k[0]; u.lng = k[1]; }
+}));
+const RAETSEL_ANZAHL = STATIONEN.filter(s => s.frage).length;
+
 /* ---------- Fortschritt ---------- */
-const SPEICHER = "stolpersteine-mainz-v2";
+const SPEICHER = "stolpersteine-mainz-v3";
 // phase: "vorort" = an Station index, Rätsel offen
 //        "unterwegs" = Station index gelöst, Weg zu index+1
 //        "fertig" = alles gelöst
@@ -355,23 +931,86 @@ function esc(t) {
   return String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
-function navLink(s) {
-  return "https://www.google.com/maps/dir/?api=1&destination=" + s.lat + "," + s.lng + "&travelmode=walking";
+function abstand(a, b) {
+  const dx = (a.lng - b.lng) * Math.cos(a.lat * Math.PI / 180), dy = a.lat - b.lat;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+// Zwischenstopps mit Koordinaten auf dem Weg zu Station "nach"
+function wegpunkte(nach) {
+  return (nach.unterwegs || []).filter(u => typeof u.lat === "number");
+}
+
+// Fußweg-Link über alle Zwischenstopps; Google Maps erlaubt max. 9 Wegpunkte,
+// bei mehr werden die Punkte weggelassen, die am dichtesten am vorherigen liegen.
+function navLink(von, nach) {
+  let wp = wegpunkte(nach).slice();
+  while (wp.length > 9) {
+    let min = Infinity, idx = 0;
+    for (let i = 0; i < wp.length; i++) {
+      const vorher = i === 0 ? von : wp[i - 1];
+      const d = abstand(vorher, wp[i]);
+      if (d < min) { min = d; idx = i; }
+    }
+    wp.splice(idx, 1);
+  }
+  let url = "https://www.google.com/maps/dir/?api=1&origin=" + von.lat + "," + von.lng +
+    "&destination=" + nach.lat + "," + nach.lng + "&travelmode=walking";
+  if (wp.length) url += "&waypoints=" + encodeURIComponent(wp.map(p => p.lat + "," + p.lng).join("|"));
+  return url;
+}
+
+function punktLink(p) {
+  return "https://www.google.com/maps/dir/?api=1&destination=" + p.lat + "," + p.lng + "&travelmode=walking";
+}
+
+const LABELS = /^(NS-Zeit|Gut zu wissen|Hinweis|Rallye-Tipp|Besucher-Tipp|Impuls für die Gruppe|Brücke zur Tour|Heutige Erinnerungskultur):\s*/;
+function punktHtml(t) {
+  const m = t.match(LABELS);
+  if (!m) return "<li>" + esc(t) + "</li>";
+  const k = m[1] === "NS-Zeit" ? "lbl-ns" : "lbl-info";
+  return '<li><span class="' + k + '">' + esc(m[1]) + ':</span> ' + esc(t.slice(m[0].length)) + "</li>";
+}
+
+function unterwegsHtml(nach) {
+  const liste = nach.unterwegs || [];
+  if (!liste.length) return "";
+  let nr = 0;
+  let html = '<div class="abschnitt-titel">Unterwegs: Orte auf dem Weg</div>';
+  liste.forEach(u => {
+    const hatPunkt = typeof u.lat === "number";
+    const marke = hatPunkt ? '<span class="nr">' + (++nr) + '</span>' : '<span class="nr leer"></span>';
+    html += '<details class="bisher"><summary><span>' + marke + esc(u.titel) + '</span></summary>' +
+      '<div class="inhalt"><div class="adresse">' + esc(u.ort) + '</div>' +
+      '<ul class="punkte">' + u.punkte.map(punktHtml).join("") + '</ul>' +
+      (u.quellen ? '<div class="quellen">Quellen: ' + esc(u.quellen) + '</div>' : '') +
+      (hatPunkt ? '<a class="kleinlink" href="' + punktLink(u) + '" target="_blank" rel="noopener">Fußweg zu diesem Ort öffnen</a>' : '') +
+      '</div></details>';
+  });
+  return html;
+}
+
+function geloestAnzahl() {
+  let n = 0;
+  STATIONEN.forEach((s, i) => {
+    if (!s.frage) return;
+    if (stand.phase === "fertig" || i < stand.index || (i === stand.index && stand.phase === "unterwegs")) n++;
+  });
+  return n;
 }
 
 function fortschrittZeichnen() {
   const leiste = document.getElementById("fortschritt");
-  const n = STATIONEN.length;
   let html = "";
-  for (let i = 0; i < n; i++) {
+  STATIONEN.forEach((s, i) => {
+    if (!s.frage) return;
     let k = "";
     if (stand.phase === "fertig" || i < stand.index || (i === stand.index && stand.phase === "unterwegs")) k = "erledigt";
-    else if (i === stand.index) k = "aktiv";
+    else if (i === stand.index || (i === stand.index + 1 && stand.phase === "unterwegs")) k = "aktiv";
     html += '<span class="' + k + '"></span>';
-  }
+  });
   leiste.innerHTML = html;
-  const geloest = stand.phase === "fertig" ? n : stand.index + (stand.phase === "unterwegs" ? 1 : 0);
-  document.getElementById("fortschrittText").textContent = geloest + " von " + n + " Stationen gelöst";
+  document.getElementById("fortschrittText").textContent = geloestAnzahl() + " von " + RAETSEL_ANZAHL + " Rätseln gelöst";
 }
 
 function zeichnen() {
@@ -389,35 +1028,43 @@ function zeichnen() {
   } else if (stand.phase === "vorort") {
     const s = STATIONEN[stand.index];
     html += '<section class="karte">' +
-            '<h2>' + esc(s.titel) + '</h2>' +
+      (stand.index === 0 ? '<div class="etikett">Rallye · Do., 12.11.2026</div>' : (s.frage ? '<div class="etikett">Hauptstation</div>' : '<div class="etikett">Ziel</div>')) +
+      '<h2>' + esc(s.titel) + '</h2>' +
       '<div class="adresse">' + esc(s.adresse) + '</div>' +
-      '<p>' + esc(s.text) + '</p>' +
-      '<button class="primaer" id="btnStart" type="button"' + (stand.raetselOffen ? ' hidden' : '') + '>Rätsel starten</button>' +
-      '<div class="raetsel" id="raetsel"' + (stand.raetselOffen ? '' : ' hidden') + '>' +
-        '<p>' + esc(s.frage) + '</p>' +
-        '<form id="formAntwort" autocomplete="off">' +
-          '<label for="antwort">Eure Antwort</label>' +
-          '<input type="text" id="antwort" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">' +
-          '<div class="knopfreihe"><button class="primaer" type="submit">Antwort prüfen</button></div>' +
-          '<div class="rueckmeldung" id="rueckmeldung" aria-live="polite"></div>' +
-        '</form>' +
-      '</div>' +
-      '</section>';
+      (s.html ? s.html : '<p>' + esc(s.text) + '</p>');
+    if (s.frage) {
+      html += '<button class="primaer" id="btnStart" type="button"' + (stand.raetselOffen ? ' hidden' : '') + '>Rätsel starten</button>' +
+        '<div class="raetsel" id="raetsel"' + (stand.raetselOffen ? '' : ' hidden') + '>' +
+          '<p>' + esc(s.frage) + '</p>' +
+          '<form id="formAntwort" autocomplete="off">' +
+            '<label for="antwort">Eure Antwort</label>' +
+            '<input type="text" id="antwort" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">' +
+            '<div class="knopfreihe"><button class="primaer" type="submit">Antwort prüfen</button></div>' +
+            '<div class="rueckmeldung" id="rueckmeldung" aria-live="polite"></div>' +
+          '</form>' +
+        '</div>';
+    } else {
+      html += '<div class="knopfreihe"><button class="primaer" id="btnWeiter" type="button">' + esc(s.weiterText || "Weiter") + '</button></div>';
+    }
+    html += '</section>';
   } else {
     const von = STATIONEN[stand.index];
     const nach = STATIONEN[stand.index + 1];
+    const zwischen = wegpunkte(nach).length;
     html += '<section class="karte">' +
-      '<div class="etikett">Richtig gelöst</div>' +
+      '<div class="etikett">' + (von.frage ? 'Richtig gelöst' : 'Los geht’s') + '</div>' +
       '<h2>Auf zur nächsten Station</h2>' +
       '<p>Euer nächstes Ziel: <span style="font-weight:600">' + esc(nach.titel) + '</span><br>' +
       '<span class="adresse">' + esc(nach.adresse) + '</span></p>' +
       '<div class="kartenansicht" id="karte"></div>' +
-      '<div class="hinweis">Gestrichelte Linie = Luftlinie. Für den Fußweg die Navigation öffnen.</div>' +
+      '<div class="hinweis">' + (zwischen ? 'Nummerierte Punkte = Orte auf dem Weg, in dieser Reihenfolge ablaufen. ' : '') +
+        'Gestrichelte Linie = Luftlinie. Für den Fußweg die Navigation öffnen.</div>' +
       '<div class="knopfreihe">' +
-        '<a class="knopf sekundaer" href="' + navLink(nach) + '" target="_blank" rel="noopener">Fußweg in Karten-App öffnen</a>' +
+        '<a class="knopf sekundaer" href="' + navLink(von, nach) + '" target="_blank" rel="noopener">Fußweg in Karten-App öffnen</a>' +
         '<button class="primaer" id="btnDa" type="button">Wir sind angekommen</button>' +
       '</div>' +
       '</section>';
+    html += unterwegsHtml(nach);
   }
 
   // bisherige Stationen
@@ -446,6 +1093,14 @@ function ereignisseBinden() {
     btnStart.hidden = true;
     document.getElementById("raetsel").hidden = false;
     document.getElementById("antwort").focus();
+  });
+
+  const btnWeiter = document.getElementById("btnWeiter");
+  if (btnWeiter) btnWeiter.addEventListener("click", () => {
+    stand.phase = stand.index === STATIONEN.length - 1 ? "fertig" : "unterwegs";
+    stand.raetselOffen = false;
+    speichern();
+    zeichnen();
   });
 
   const form = document.getElementById("formAntwort");
@@ -508,8 +1163,19 @@ function karteZeichnen() {
       iconSize: [26, 26], iconAnchor: [13, 13]
     })
   }).addTo(karte).bindPopup("Ziel: " + esc(nach.titel));
-  L.polyline([[von.lat, von.lng], [nach.lat, nach.lng]], { color: "#b8892f", weight: 4, dashArray: "8 8" }).addTo(karte);
-  karte.fitBounds(L.latLngBounds([[von.lat, von.lng], [nach.lat, nach.lng]]), { padding: [40, 40] });
+  const wp = wegpunkte(nach);
+  const linie = [[von.lat, von.lng]].concat(wp.map(p => [p.lat, p.lng]), [[nach.lat, nach.lng]]);
+  L.polyline(linie, { color: "#b8892f", weight: 4, dashArray: "8 8" }).addTo(karte);
+  wp.forEach((p, i) => {
+    L.marker([p.lat, p.lng], {
+      icon: L.divIcon({
+        className: "",
+        html: '<div style="width:22px;height:22px;border-radius:50%;background:#2b2622;color:#fff;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);font:600 12px/18px system-ui,sans-serif;text-align:center">' + (i + 1) + '</div>',
+        iconSize: [22, 22], iconAnchor: [11, 11]
+      })
+    }).addTo(karte).bindPopup((i + 1) + ". " + esc(p.titel));
+  });
+  karte.fitBounds(L.latLngBounds(linie), { padding: [40, 40] });
   punktNach.openPopup();
 
 }
