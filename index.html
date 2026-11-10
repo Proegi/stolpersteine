@@ -236,7 +236,9 @@
   .gruppen tr:last-child th, .gruppen tr:last-child td { border-bottom: 1px solid var(--rand); }
   .gruppen th { font-weight: 600; width: 45%; vertical-align: top; padding-right: .6rem; }
   .gruppen td { vertical-align: top; }
-  .gruppen th .adresse { font-weight: 400; font-size: .8rem; margin: .1rem 0 0; }
+  .gruppen th .namen { font-weight: 400; font-size: .8rem; color: var(--leise); margin-top: .1rem; }
+  .gruppen .kopf { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--leise); font-weight: 600; border-top: none; }
+  .gruppen th { width: 70%; }
   .paten { font-size: .9rem; color: var(--leise); }
   .platzhalter {
     margin: .8rem 0 .2rem;
@@ -330,16 +332,7 @@ const STATIONEN = [
         '<li>Das erste Rätsel löst ihr gleich hier am Hauptbahnhof, danach wartet an jeder der sechs Hauptstationen ein weiteres. Erst mit der richtigen Lösung geht es weiter.</li>' +
         '<li>Ziel ist der Hof Ehrenfels in der Altstadt. Dort treffen sich alle Gruppen gegen 16:15 Uhr wieder.</li>' +
       '</ul>' +
-      '<div class="gruppen"><div class="weg-titel">Kleingruppen und Begleitung</div>' +
-        '<table>' +
-          '<tr><th>Gruppe 1</th><td>Anna</td></tr>' +
-          '<tr><th>Gruppe 2</th><td>Benedikt</td></tr>' +
-          '<tr><th>Gruppe 3</th><td>Amelie</td></tr>' +
-          '<tr><th>Gruppe 4</th><td>Yannick</td></tr>' +
-          '<tr><th>Gruppe 5</th><td>Dane</td></tr>' +
-          '<tr><th>Gruppe 6</th><td>Christian</td></tr>' +
-        '</table>' +
-      '</div>',
+      '',
     frage: "Wie viele Studierende gibt es in Mainz? (ungefähre Zahl)",
     bereich: [25000, 60000],
     unterwegs: []
@@ -901,11 +894,16 @@ function unterwegsHtml(nach) {
   return html + '</div>';
 }
 
+// Begleitung aus der Orga-Gruppe je Gruppe (Gruppe N = Ortspatenschaft N)
+const BEGLEITUNG = { 1: "Yannick", 2: "Benedikt", 3: "Amelie", 4: "Anna", 5: "Dane", 6: "Christian" };
+
 function patenTabelle() {
-  let h = '<div class="gruppen"><div class="weg-titel">Patengruppen an den Hauptstationen</div><table>';
-  STATIONEN.forEach(s => {
-    if (!s.gruppe) return;
-    h += '<tr><th>' + esc(s.titel) + '<div class="adresse">' + esc(s.adresse) + '</div></th><td>' + esc(s.paten || '') + '</td></tr>';
+  const gruppen = STATIONEN.filter(s => s.gruppe).sort((a, b) => a.gruppe - b.gruppe);
+  let h = '<div class="gruppen"><div class="weg-titel">Gruppeneinteilung</div><table>' +
+    '<tr><th class="kopf">Gruppe</th><td class="kopf">Begleitung</td></tr>';
+  gruppen.forEach(s => {
+    h += '<tr><th>Gruppe ' + s.gruppe + '<div class="namen">' + esc(s.paten || '') + '</div></th>' +
+      '<td>' + esc(BEGLEITUNG[s.gruppe] || '') + '</td></tr>';
   });
   return h + '</table></div>';
 }
@@ -952,7 +950,7 @@ function zeichnen() {
       '<h2>' + esc(s.titel) + '</h2>' +
       '<div class="adresse">' + esc(s.adresse) + '</div>' +
       (s.html ? s.html : (s.text ? '<p>' + esc(s.text) + '</p>' : '')) +
-      (s.gruppe ? '<p>Hier stellt euch jetzt die Gruppe <span style="font-weight:600">„' + esc(s.titel) + '“</span> ihr Thema vor. Danach geht es mit dem Rätsel weiter.</p>' + (s.paten ? '<p class="paten">' + esc(s.paten) + '</p>' : '') : '') +
+      (s.gruppe ? '<p>Hier stellt euch jetzt <span style="font-weight:600">Gruppe ' + s.gruppe + ' („' + esc(s.titel) + '“)</span> ihr Thema vor. Danach geht es mit dem Rätsel weiter.</p>' + (s.paten ? '<p class="paten">' + esc(s.paten) + '</p>' : '') : '') +
       (stand.index === 0 ? patenTabelle() : '');
     if (s.frage) {
       html += '<button class="primaer" id="btnStart" type="button"' + (stand.raetselOffen ? ' hidden' : '') + '>Rätsel starten</button>' +
