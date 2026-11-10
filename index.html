@@ -230,6 +230,11 @@
   .lbl-info { color: #2a5d8a; font-weight: 600; }
   .quellen { font-size: .7rem; color: var(--leise); margin-bottom: .5rem; }
   .kleinlink { font-size: .85rem; color: var(--messing-dunkel); font-weight: 600; }
+  .gruppen { margin: 1rem 0 .2rem; }
+  .gruppen table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+  .gruppen th, .gruppen td { text-align: left; padding: .45rem 0; border-top: 1px solid var(--rand); }
+  .gruppen tr:last-child th, .gruppen tr:last-child td { border-bottom: 1px solid var(--rand); }
+  .gruppen th { font-weight: 600; width: 45%; }
   .platzhalter {
     margin: .8rem 0 .2rem;
     padding: .8rem 1rem;
@@ -319,12 +324,22 @@ const STATIONEN = [
       '<ul class="ablauf">' +
         '<li>Die Seite zeigt euch immer nur das nächste Ziel – mit Karte und Link zur Karten-App.</li>' +
         '<li>Auf dem Weg kommt ihr an weiteren Orten vorbei. Dazu erzählt euch eure Begleitung etwas.</li>' +
-        '<li>An sechs Hauptstationen wartet ein Rätsel. Erst mit der richtigen Lösung geht es weiter.</li>' +
+        '<li>Das erste Rätsel löst ihr gleich hier am Hauptbahnhof, danach wartet an jeder der sechs Hauptstationen ein weiteres. Erst mit der richtigen Lösung geht es weiter.</li>' +
         '<li>Ziel ist der Hof Ehrenfels in der Altstadt. Dort treffen sich alle Gruppen gegen 16:15 Uhr wieder.</li>' +
       '</ul>' +
-      '<div class="platzhalter"><span style="font-weight:600">Gruppenaufteilung</span><br>Platzhalter: Hier folgt die Einteilung der Kleingruppen und ihrer Begleitungen aus der Orga-Gruppe.</div>',
-    frage: null,
-    weiterText: "Rundgang starten",
+      '<div class="gruppen"><div class="weg-titel">Gruppeneinteilung</div>' +
+        '<table>' +
+          '<tr><th>Gruppe 1</th><td>Anna</td></tr>' +
+          '<tr><th>Gruppe 2</th><td>Benedikt</td></tr>' +
+          '<tr><th>Gruppe 3</th><td>Amelie</td></tr>' +
+          '<tr><th>Gruppe 4</th><td>Yannick</td></tr>' +
+          '<tr><th>Gruppe 5</th><td>Dane</td></tr>' +
+          '<tr><th>Gruppe 6</th><td>Christian</td></tr>' +
+        '</table>' +
+      '</div>',
+    frage: "Wann wurde der Mainzer Fußballverein gegründet? (Jahreszahl)",
+    antwort: "1905",
+    grossKlein: false,
     unterwegs: []
   },
   {
