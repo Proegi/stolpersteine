@@ -195,6 +195,34 @@
     vertical-align: .1em;
   }
   .nr.leer { background: transparent; border: 2px solid var(--stein); }
+  .weg { margin-top: 1rem; }
+  .weg-titel {
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--messing-dunkel);
+    font-weight: 600;
+    margin-bottom: .2rem;
+  }
+  details.randinfo { border-top: 1px solid var(--rand); }
+  details.randinfo:last-child { border-bottom: 1px solid var(--rand); }
+  details.randinfo summary {
+    padding: .65rem 0;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: .95rem;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: .6rem;
+  }
+  details.randinfo summary > span { display: flex; align-items: center; }
+  details.randinfo .nr { flex: none; box-sizing: border-box; }
+  details.randinfo summary::-webkit-details-marker { display: none; }
+  details.randinfo summary::after { content: "+"; color: var(--messing-dunkel); font-size: 1.1rem; }
+  details.randinfo[open] summary::after { content: "\2212"; }
+  details.randinfo .inhalt { padding: 0 0 .8rem 1.9rem; }
   ul.punkte, ul.ablauf { margin: 0 0 .6rem; padding-left: 1.2rem; }
   ul.punkte li, ul.ablauf li { margin-bottom: .45rem; }
   ul.punkte { font-size: .9rem; }
@@ -976,18 +1004,18 @@ function unterwegsHtml(nach) {
   const liste = nach.unterwegs || [];
   if (!liste.length) return "";
   let nr = 0;
-  let html = '<div class="abschnitt-titel">Unterwegs: Orte auf dem Weg</div>';
+  let html = '<div class="weg"><div class="weg-titel">Auf dem Weg</div>';
   liste.forEach(u => {
     const hatPunkt = typeof u.lat === "number";
     const marke = hatPunkt ? '<span class="nr">' + (++nr) + '</span>' : '<span class="nr leer"></span>';
-    html += '<details class="bisher"><summary><span>' + marke + esc(u.titel) + '</span></summary>' +
+    html += '<details class="randinfo"><summary><span>' + marke + esc(u.titel) + '</span></summary>' +
       '<div class="inhalt"><div class="adresse">' + esc(u.ort) + '</div>' +
       '<ul class="punkte">' + u.punkte.map(punktHtml).join("") + '</ul>' +
       (u.quellen ? '<div class="quellen">Quellen: ' + esc(u.quellen) + '</div>' : '') +
       (hatPunkt ? '<a class="kleinlink" href="' + punktLink(u) + '" target="_blank" rel="noopener">Fußweg zu diesem Ort öffnen</a>' : '') +
       '</div></details>';
   });
-  return html;
+  return html + '</div>';
 }
 
 function geloestAnzahl() {
@@ -1059,12 +1087,12 @@ function zeichnen() {
       '<div class="kartenansicht" id="karte"></div>' +
       '<div class="hinweis">' + (zwischen ? 'Nummerierte Punkte = Orte auf dem Weg, in dieser Reihenfolge ablaufen. ' : '') +
         'Gestrichelte Linie = Luftlinie. Für den Fußweg die Navigation öffnen.</div>' +
+      unterwegsHtml(nach) +
       '<div class="knopfreihe">' +
         '<a class="knopf sekundaer" href="' + navLink(von, nach) + '" target="_blank" rel="noopener">Fußweg in Karten-App öffnen</a>' +
         '<button class="primaer" id="btnDa" type="button">Wir sind angekommen</button>' +
       '</div>' +
       '</section>';
-    html += unterwegsHtml(nach);
   }
 
   // bisherige Stationen
