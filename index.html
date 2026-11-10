@@ -240,6 +240,17 @@
   .gruppen .kopf { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--leise); font-weight: 600; border-top: none; }
   .gruppen th { width: 70%; }
   .paten { font-size: .9rem; color: var(--leise); }
+  details.randinfo .inhalt.mit-bild { display: flex; gap: .7rem; align-items: flex-start; }
+  details.randinfo .inhalt .text { flex: 1; min-width: 0; }
+  details.randinfo .bilder { flex: 0 0 34%; display: grid; gap: .4rem; }
+  details.randinfo .bilder img { display: block; width: 100%; height: auto; border-radius: .5rem; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+  /* Handy: Bilder über dem Text, nebeneinander */
+  @media (max-width: 640px) {
+    details.randinfo .inhalt.mit-bild { flex-direction: column; }
+    details.randinfo .bilder { order: -1; flex: none; width: 100%; display: flex; gap: .4rem; }
+    details.randinfo .bilder a { flex: 1; min-width: 0; }
+    details.randinfo .bilder img { height: 11rem; object-fit: cover; }
+  }
   .platzhalter {
     margin: .8rem 0 .2rem;
     padding: .8rem 1rem;
@@ -876,6 +887,42 @@ function punktHtml(t) {
   return '<li><span class="' + k + '">' + esc(m[1]) + ':</span> ' + esc(t.slice(m[0].length)) + "</li>";
 }
 
+// Fotos zu den Zwischenstopps (Ordner bilder/, Nummer = Nummer in der Stichpunkte-PDF)
+const BILDER = {
+  "Mainz Hauptbahnhof": ["b1"],
+  "Wandgemälde: Mainzer Schwellkopf und Zugente": ["b2", "b2-1"],
+  "Frauenlobstraße": ["b4"],
+  "Boppstraße (mit Stolpersteinen)": ["b5"],
+  "Rote und blaue Straßenschilder": ["b5"],
+  "Werner’s Backstube": ["b7"],
+  "Neue Synagoge Mainz": ["b9"],
+  "Rabanus-Maurus-Gymnasium": ["b10"],
+  "Denkmal der 263. Infanterie-Division („Weintraubendivision“)": ["b11"],
+  "Christuskirche": ["b12"],
+  "Justizministerium und Ministerium für Verbraucherschutz": ["b13"],
+  "St. Peter": ["b14"],
+  "Landtag Rheinland-Pfalz (Deutschhaus)": ["b15"],
+  "Kurfürstliches Schloss": ["b16"],
+  "Theodor-Heuss-Brücke": ["b17"],
+  "Karmeliter-Kloster": ["b18"],
+  "Tanzschule Willius-Senzer": ["b19"],
+  "Ruine und Gedenkstätte St. Christoph": ["b20"],
+  "Römerpassage (Isis- und Mater-Magna-Heiligtum)": ["b22", "b22-1"],
+  "Emmeranstraße und Kirche St. Emmeran": ["b23", "b23-1"],
+  "Schiller-Denkmal am Schillerplatz": ["b24"],
+  "Fastnachtsbrunnen": ["b27"],
+  "LuLu / LU erleben": ["b29"],
+  "50. Breitengrad auf dem Gutenbergplatz": ["b30"],
+  "Staatstheater Mainz (Mollerbau)": ["b31"],
+  "Alter Dom St. Johannis": ["b33"],
+  "Marktbrunnen": ["b35"],
+  "Kanonenkugeln in der Wand": ["b36"],
+  "Nagelsäule": ["b37"],
+  "Mainzer Dom St. Martin (Ansicht von vorne)": ["b38"],
+  "Gutenberg-Museum": ["b39"],
+  "Umweg über das „Kalte Loch“ / Domstraße": ["b40"]
+};
+
 function unterwegsHtml(nach) {
   const liste = nach.unterwegs || [];
   if (!liste.length) return "";
@@ -884,11 +931,16 @@ function unterwegsHtml(nach) {
   liste.forEach(u => {
     const hatPunkt = typeof u.lat === "number";
     const marke = hatPunkt ? '<span class="nr">' + (++nr) + '</span>' : '<span class="nr leer"></span>';
+    const bilder = BILDER[u.titel] || [];
     html += '<details class="randinfo"><summary><span>' + marke + esc(u.titel) + '</span></summary>' +
-      '<div class="inhalt"><div class="adresse">' + esc(u.ort) + '</div>' +
+      '<div class="inhalt' + (bilder.length ? ' mit-bild' : '') + '"><div class="text">' +
+      '<div class="adresse">' + esc(u.ort) + '</div>' +
       '<ul class="punkte">' + u.punkte.map(punktHtml).join("") + '</ul>' +
       (u.quellen ? '<div class="quellen">Quellen: ' + esc(u.quellen) + '</div>' : '') +
       (hatPunkt ? '<a class="kleinlink" href="' + punktLink(u) + '" target="_blank" rel="noopener">Fußweg zu diesem Ort öffnen</a>' : '') +
+      '</div>' +
+      (bilder.length ? '<div class="bilder">' + bilder.map(b =>
+        '<a href="bilder/' + b + '.jpg" target="_blank" rel="noopener"><img src="bilder/' + b + '.jpg" alt="' + esc(u.titel) + '" loading="lazy"></a>').join("") + '</div>' : '') +
       '</div></details>';
   });
   return html + '</div>';
@@ -941,7 +993,6 @@ function zeichnen() {
       '<div class="etikett">Geschafft</div>' +
       '<div class="gross">&#9632;</div>' +
       '<h2>Rundgang abgeschlossen</h2>' +
-      '<p>Platzhaltertext für den Abschluss des Rundgangs.</p>' +
       '</section>';
   } else if (stand.phase === "vorort") {
     const s = STATIONEN[stand.index];
