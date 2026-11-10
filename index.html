@@ -337,9 +337,8 @@ const STATIONEN = [
           '<tr><th>Gruppe 6</th><td>Christian</td></tr>' +
         '</table>' +
       '</div>',
-    frage: "Wann wurde der Mainzer Fußballverein gegründet? (Jahreszahl)",
-    antwort: "1905",
-    grossKlein: false,
+    frage: "Wie viele Studierende gibt es in Mainz? (ungefähre Zahl)",
+    bereich: [25000, 60000],
     unterwegs: []
   },
   {
@@ -348,8 +347,8 @@ const STATIONEN = [
     adresse: "Anna-Seghers-Platz",
     lat: 50.00322, lng: 8.25941,
     text: "Platzhaltertext. Thema: Anna Seghers, Literarisches Denkmal, Das siebte Kreuz.",
-    frage: "Platzhalter-Rätsel zur Kommunistin im Exil. (Dummy-Lösung: test)",
-    antwort: "test",
+    frage: "Wann wurde der Mainzer Fußballverein gegründet? (Jahreszahl)",
+    antwort: "1905",
     grossKlein: false,
     unterwegs: [
       {
@@ -435,8 +434,8 @@ const STATIONEN = [
     adresse: "Klarastraße 4",
     lat: 50.00170, lng: 8.26982,
     text: "Platzhaltertext. Thema: Ein Mainzer Adelshof, Gefängnis, Luxuswohnungen.",
-    frage: "Platzhalter-Rätsel zum Dalberger Hof. (Dummy-Lösung: test)",
-    antwort: "test",
+    frage: "Was war der Dalberger Hof, bevor hier Wohnungen entstehen sollten?",
+    enthaelt: ["gefängnis", "gefaengnis", "knast", "haft", "zelle", "kerker", "polizei", "gericht", "justiz", "adel", "palais", "palast", "residenz"],
     grossKlein: false,
     unterwegs: [
       {
@@ -598,6 +597,16 @@ const STATIONEN = [
           "Rundum barocke Adelshöfe, u. a. der Osteiner Hof"
         ],
         quellen: "Wikipedia DE, Schillerplatz (Mainz)"
+      },
+      {
+        titel: "Fastnachtsbrunnen",
+        ort: "Schillerplatz",
+        punkte: [
+          "Seit 1967, knapp 9 m hoch",
+          "Über 200 Bronzefiguren der Fastnacht",
+          "Spruch: „Weck, Worscht un Woi“"
+        ],
+        quellen: "Wikipedia DE, Fastnachtsbrunnen (Mainz)"
       }
     ]
   },
@@ -611,16 +620,6 @@ const STATIONEN = [
     antwort: "test",
     grossKlein: false,
     unterwegs: [
-      {
-        titel: "Fastnachtsbrunnen",
-        ort: "Schillerplatz",
-        punkte: [
-          "Seit 1967, knapp 9 m hoch",
-          "Über 200 Bronzefiguren der Fastnacht",
-          "Spruch: „Weck, Worscht un Woi“"
-        ],
-        quellen: "Wikipedia DE, Fastnachtsbrunnen (Mainz)"
-      },
       {
         titel: "Ludwigsstraße / Kreuzung Weißliliengasse",
         ort: "Altstadt",
@@ -803,6 +802,28 @@ function laden() {
 }
 function speichern() {
   try { localStorage.setItem(SPEICHER, JSON.stringify(stand)); } catch (e) {}
+}
+
+// Zahl aus freier Eingabe lesen: "40000", "40.000", "40 000", "ca. 40k", "40 tausend"
+function zahlLesen(t) {
+  t = String(t).toLocaleLowerCase("de").replace(/\s+/g, "");
+  const m = t.match(/(\d+(?:[.,]\d+)*)(k|tsd\.?|tausend)?/);
+  if (!m) return NaN;
+  let z = m[1];
+  if (m[2]) z = parseFloat(z.replace(",", "."));               // 40k, 40,5tausend
+  else z = parseFloat(z.replace(/[.,](?=\d{3}(\D|$))/g, "").replace(",", "."));
+  return m[2] ? z * 1000 : z;
+}
+
+// Antwortprüfung: antwort (exakt), enthaelt (Stichwort irgendwo in der Eingabe), bereich [von, bis]
+function pruefen(s, eingabe) {
+  if (s.bereich) {
+    const z = zahlLesen(eingabe);
+    return z >= s.bereich[0] && z <= s.bereich[1];
+  }
+  const e = normalisieren(eingabe, s.grossKlein);
+  if (s.enthaelt) return e !== "" && s.enthaelt.some(w => e.includes(normalisieren(w, s.grossKlein)));
+  return e === normalisieren(s.antwort, s.grossKlein);
 }
 
 function normalisieren(t, grossKlein) {
@@ -996,9 +1017,8 @@ function ereignisseBinden() {
     const s = STATIONEN[stand.index];
     const feld = document.getElementById("antwort");
     const rm = document.getElementById("rueckmeldung");
-    const eingabe = normalisieren(feld.value, s.grossKlein);
     // DEBUG: "test" wird bei jeder Frage zusätzlich als richtig akzeptiert
-    if (eingabe === normalisieren(s.antwort, s.grossKlein) || normalisieren(feld.value, false) === "test") {
+    if (pruefen(s, feld.value) || normalisieren(feld.value, false) === "test") {
       rm.className = "rueckmeldung ok";
       rm.textContent = "Richtig!";
       feld.blur();
