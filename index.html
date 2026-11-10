@@ -996,7 +996,9 @@ function ereignisseBinden() {
     const s = STATIONEN[stand.index];
     const feld = document.getElementById("antwort");
     const rm = document.getElementById("rueckmeldung");
-    if (normalisieren(feld.value, s.grossKlein) === normalisieren(s.antwort, s.grossKlein)) {
+    const eingabe = normalisieren(feld.value, s.grossKlein);
+    // DEBUG: "test" wird bei jeder Frage zusätzlich als richtig akzeptiert
+    if (eingabe === normalisieren(s.antwort, s.grossKlein) || normalisieren(feld.value, false) === "test") {
       rm.className = "rueckmeldung ok";
       rm.textContent = "Richtig!";
       feld.blur();
